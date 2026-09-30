@@ -3,6 +3,7 @@
  */
 import { addToCart } from "../store.js";
 import { escapeHtml, formatPrice } from "../utils/format.js";
+import { highlightMatches } from "../utils/highlight.js";
 import { showToast } from "./toast.js";
 import { doneLoading } from "./states.js";
 
@@ -13,10 +14,11 @@ function vegBadgeHTML(veg) {
 
 /**
  * @param {object} product - a menu item from the API
- * @param {{ variant?: "home" | "menu" }} [options]
+ * @param {{ variant?: "home" | "menu", query?: string }} [options]
  *   "home" is the compact card with a View link; "menu" adds the description and a Go to Cart link.
+ *   `query` highlights matching text in the title and restaurant name.
  */
-export function productCardHTML(product, { variant = "menu" } = {}) {
+export function productCardHTML(product, { variant = "menu", query = "" } = {}) {
   const title = escapeHtml(product.title);
   const addButton = `<button class="btn add-to-cart" data-id="${escapeHtml(product.id)}">Add to Cart</button>`;
 
@@ -39,8 +41,8 @@ export function productCardHTML(product, { variant = "menu" } = {}) {
         ${vegBadgeHTML(product.veg)}
         ${product.rating ? `<span class="rating"><i class="fa-solid fa-star" aria-hidden="true"></i> ${product.rating.toFixed(1)}</span>` : ""}
       </div>
-      <h4>${title}</h4>
-      ${product.restaurant ? `<p class="card-restaurant">${escapeHtml(product.restaurant.name)}</p>` : ""}
+      <h4>${highlightMatches(product.title, query)}</h4>
+      ${product.restaurant ? `<p class="card-restaurant">${highlightMatches(product.restaurant.name, query)}</p>` : ""}
       <div class="price">${formatPrice(product.price)}</div>
       ${body}
     </div>

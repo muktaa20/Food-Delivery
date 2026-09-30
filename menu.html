@@ -25,12 +25,57 @@
           <h2>Explore our dishes</h2>
         </div>
 
-        <div class="filters mt-4" role="group" aria-label="Filter by category">
+        <div class="menu-toolbar mt-4">
+          <div class="search-box" role="search">
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <input
+              type="search"
+              id="menu-search"
+              placeholder="Search dishes, restaurants or cuisines"
+              aria-label="Search dishes"
+              autocomplete="off"
+              list="recent-searches"
+            />
+            <datalist id="recent-searches"></datalist>
+            <kbd class="search-hint" aria-hidden="true">/</kbd>
+          </div>
+
+          <div class="toolbar-controls">
+            <label class="toggle">
+              <input type="checkbox" id="filter-veg" />
+              <span class="veg-badge veg" aria-hidden="true"></span> Veg only
+            </label>
+            <select id="filter-rating" aria-label="Minimum rating">
+              <option value="0">Any rating</option>
+              <option value="4">4.0+ rating</option>
+              <option value="4.5">4.5+ rating</option>
+            </select>
+            <select id="filter-price" aria-label="Maximum price">
+              <option value="0">Any price</option>
+              <option value="100">Under ₹100</option>
+              <option value="200">Under ₹200</option>
+              <option value="300">Under ₹300</option>
+            </select>
+            <select id="sort-by" aria-label="Sort by">
+              <option value="relevance">Sort: Relevance</option>
+              <option value="price_asc">Price: Low to High</option>
+              <option value="price_desc">Price: High to Low</option>
+              <option value="rating">Rating: High to Low</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="filters mt-2" role="group" aria-label="Filter by category">
           <button type="button" class="btn filter-btn" data-cat="all">All</button>
           <!-- JS adds one chip per category from /api/categories -->
         </div>
 
-        <div class="card-list grid mt-4" id="menu-grid" aria-live="polite">
+        <div class="results-bar">
+          <p id="results-summary" class="small" aria-live="polite"></p>
+          <button type="button" id="clear-filters" class="link-btn" hidden>Clear all filters</button>
+        </div>
+
+        <div class="card-list grid" id="menu-grid">
           <!-- JS will render menu items here -->
         </div>
       </div>

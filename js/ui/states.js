@@ -39,12 +39,15 @@ export function renderError(container, message, onRetry) {
   container.querySelector("[data-retry]")?.addEventListener("click", onRetry, { once: true });
 }
 
-export function renderEmpty(container, message) {
+/** @param {{ label: string, onClick: () => void }} [action] - optional button, e.g. "Clear filters" */
+export function renderEmpty(container, message, action) {
   doneLoading(container);
   container.innerHTML = `
     <div class="state-message">
       <i class="fa-solid fa-bowl-food" aria-hidden="true"></i>
       <p>${escapeHtml(message)}</p>
+      ${action ? `<button type="button" class="btn" data-empty-action>${escapeHtml(action.label)}</button>` : ""}
     </div>
   `;
+  if (action) container.querySelector("[data-empty-action]").addEventListener("click", action.onClick, { once: true });
 }

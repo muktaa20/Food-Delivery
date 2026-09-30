@@ -352,6 +352,116 @@ h3 {
   font-size: .8rem;
   opacity: .75;
 }
+.mt-2 {
+  margin-top: 2rem;
+}
+
+/* Search + filter toolbar */
+.menu-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+.search-box,
+.hero-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 320px;
+  max-width: 560px;
+}
+.search-box > .fa-magnifying-glass,
+.hero-search > .fa-magnifying-glass {
+  position: absolute;
+  left: 1rem;
+  color: var(--muted);
+  pointer-events: none;
+}
+.search-box input,
+.hero-search input {
+  width: 100%;
+  padding: .85rem 2.8rem .85rem 2.7rem;
+  border: 1px solid #ddd;
+  border-radius: 1rem;
+  font-size: 1rem;
+  background: var(--pure-white);
+}
+.search-box input:focus,
+.hero-search input:focus,
+.toolbar-controls select:focus {
+  outline: 2px solid var(--gold-finger);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+.search-hint {
+  position: absolute;
+  right: .9rem;
+  font-size: .8rem;
+  padding: .1rem .45rem;
+  border: 1px solid #ddd;
+  border-radius: .35rem;
+  color: var(--muted);
+  background: var(--eye-ball);
+}
+.search-box input:focus ~ .search-hint,
+.search-box input:not(:placeholder-shown) ~ .search-hint {
+  display: none;
+}
+.hero-search {
+  margin-bottom: 2rem;
+  gap: .6rem;
+}
+.hero-search input {
+  padding-right: 1rem;
+}
+.toolbar-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .6rem;
+  align-items: center;
+}
+.toolbar-controls select,
+.toggle {
+  padding: .7rem .9rem;
+  border: 1px solid #ddd;
+  border-radius: .8rem;
+  background: var(--pure-white);
+  font-size: .95rem;
+  cursor: pointer;
+}
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  user-select: none;
+}
+.toggle input {
+  accent-color: #1b8a3a;
+}
+.results-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 2.5rem;
+  margin: 1.5rem 0 1rem;
+}
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--gold-finger);
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+mark {
+  background: #ffe2c7;
+  color: inherit;
+  border-radius: .2rem;
+  padding: 0 .1rem;
+}
 
 /* Skeleton loaders */
 .skeleton {

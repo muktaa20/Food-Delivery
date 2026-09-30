@@ -3,7 +3,8 @@
  *
  *   GET /api/restaurants
  *   GET /api/restaurants/:id          restaurant + its menu
- *   GET /api/menu?category=&popular=true&restaurantId=
+ *   GET /api/menu                     filters: q, category, veg, minRating, maxPrice,
+ *                                     sort, popular, restaurantId, ids (comma-separated)
  *   GET /api/categories               categories with item counts
  *
  * Paths start with "*" so they match when the site is served from a
@@ -12,6 +13,7 @@
 import { http, HttpResponse, delay } from "../vendor/msw.js";
 import { getMockConfig, nextLatency } from "./config.js";
 import { getAll, getById, STORES } from "./db.js";
+import { queryMenu } from "../domain/menuQuery.js";
 
 const notFound = (message) => HttpResponse.json({ message }, { status: 404 });
 
@@ -27,14 +29,25 @@ const withNetwork = (resolver) => async (info) => {
   return resolver(info);
 };
 
-/** Attach a small restaurant summary to each menu item, like a SQL join. */
+/** Attach a restaurant summary and category label to each menu item, like a SQL join. */
 async function withRestaurant(items) {
-  const restaurants = new Map((await getAll(STORES.restaurants)).map((r) => [r.id, r]));
+  const [restaurants, categories] = await Promise.all([getAll(STORES.restaurants), getAll(STORES.categories)]);
+  const restaurantById = new Map(restaurants.map((r) => [r.id, r]));
+  const labelById = new Map(categories.map((c) => [c.id, c.label]));
   return items.map(({ position, ...item }) => {
-    const r = restaurants.get(item.restaurantId);
-    return { ...item, restaurant: r ? { id: r.id, name: r.name } : null };
+    const r = restaurantById.get(item.restaurantId);
+    return {
+      ...item,
+      categoryLabel: labelById.get(item.category) ?? item.category,
+      restaurant: r ? { id: r.id, name: r.name } : null,
+    };
   });
 }
+
+const numberParam = (params, key) => {
+  const value = Number(params.get(key));
+  return Number.isFinite(value) && value > 0 ? value : 0;
+};
 
 const stripPosition = ({ position, ...rest }) => rest;
 
@@ -57,18 +70,20 @@ export const handlers = [
   http.get(
     "*/api/menu",
     withNetwork(async ({ request }) => {
-      const url = new URL(request.url);
-      const category = url.searchParams.get("category");
-      const restaurantId = url.searchParams.get("restaurantId");
-      const popularOnly = url.searchParams.get("popular") === "true";
-
-      let items = category
-        ? await getAll(STORES.menuItems, { index: "byCategory", query: category })
-        : await getAll(STORES.menuItems);
-      if (restaurantId) items = items.filter((item) => item.restaurantId === restaurantId);
-      if (popularOnly) items = items.filter((item) => item.popular);
-
-      return HttpResponse.json(await withRestaurant(items));
+      const params = new URL(request.url).searchParams;
+      const items = await withRestaurant(await getAll(STORES.menuItems));
+      const results = queryMenu(items, {
+        q: params.get("q") ?? "",
+        category: params.get("category") || undefined,
+        veg: params.get("veg") === "true",
+        minRating: numberParam(params, "minRating"),
+        maxPrice: numberParam(params, "maxPrice"),
+        sort: params.get("sort") ?? "relevance",
+        popular: params.get("popular") === "true",
+        restaurantId: params.get("restaurantId") || undefined,
+        ids: params.get("ids")?.split(",").filter(Boolean),
+      });
+      return HttpResponse.json(results);
     })
   ),
 

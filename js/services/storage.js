@@ -9,6 +9,7 @@ export const KEYS = Object.freeze({
   cart: "fd_cart_v1",
   users: "fd_users_v1",
   auth: "fd_auth_v1",
+  recentSearches: "fd_recent_searches_v1",
 });
 
 /** Read and parse a JSON value, returning `fallback` if missing or corrupt. */
