@@ -7,7 +7,6 @@
  * without calling each other.
  */
 import { KEYS, readJSON, writeJSON, removeKey } from "./services/storage.js";
-import { findProduct } from "./data/products.js";
 
 export const DELIVERY_FEE = 30;
 
@@ -30,6 +29,7 @@ function emit(type) {
 
 /* ---------- Cart ----------
  * Shape: { [productId]: { id, title, price, img, qty } }
+ * Items are snapshots, so the cart renders without waiting for the API.
  */
 
 export function getCart() {
@@ -49,11 +49,14 @@ function saveCart(cart) {
   emit("cart");
 }
 
-/** @returns {boolean} false if the product id is unknown */
-export function addToCart(id, qty = 1) {
-  const product = findProduct(id);
-  if (!product) return false;
+/**
+ * @param {{ id: string, title: string, price: number, img: string }} product - as returned by the API
+ * @returns {boolean} false if no product was given
+ */
+export function addToCart(product, qty = 1) {
+  if (!product?.id) return false;
 
+  const { id } = product;
   const cart = getCart();
   if (cart[id]) {
     cart[id].qty = Number(cart[id].qty) + Number(qty);

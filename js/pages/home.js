@@ -1,14 +1,22 @@
 /** Landing page: popular dishes, reviews carousel and the "Get the App" teaser. */
 import { $, $$ } from "../utils/dom.js";
-import { getPopularProducts } from "../data/products.js";
+import { api } from "../services/api.js";
 import { renderProductCards, bindAddToCart } from "../ui/productCard.js";
+import { renderLoading, renderError, renderEmpty } from "../ui/states.js";
 import { showToast } from "../ui/toast.js";
 
-function renderPopular() {
-  const container = $("#popular-list");
-  if (!container) return;
-  renderProductCards(container, getPopularProducts(), { variant: "home" });
-  bindAddToCart(container);
+const productsById = new Map();
+
+async function loadPopular(container) {
+  renderLoading(container, 6);
+  try {
+    const items = await api.getMenu({ popular: true });
+    items.forEach((item) => productsById.set(item.id, item));
+    if (items.length === 0) renderEmpty(container, "No popular dishes right now. Check back soon!");
+    else renderProductCards(container, items, { variant: "home" });
+  } catch (err) {
+    renderError(container, err.message, () => loadPopular(container));
+  }
 }
 
 /** Swiper is loaded as a classic <script> from a CDN, so it's a window global. */
@@ -34,7 +42,11 @@ function bindComingSoon() {
 }
 
 export function init() {
-  renderPopular();
+  const popular = $("#popular-list");
+  if (popular) {
+    bindAddToCart(popular, (id) => productsById.get(id));
+    loadPopular(popular);
+  }
   initReviewsCarousel();
   bindComingSoon();
 }

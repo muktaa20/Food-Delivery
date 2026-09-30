@@ -31,7 +31,8 @@
             <input id="login-password" type="password" name="password" autocomplete="current-password" required />
           </div>
           <div class="form-row">
-            <button class="btn" type="submit">Login</button>
+            <!-- Enabled by JS once the submit handler is attached; a native GET submit would put the password in the URL. -->
+            <button class="btn" type="submit" disabled>Login</button>
           </div>
           <p class="small">Don't have an account? <a href="signup.html">Sign up</a></p>
           <div id="login-error" class="error-msg"></div>

@@ -25,14 +25,12 @@
           <h2>Explore our dishes</h2>
         </div>
 
-        <div class="filters text-center mt-4">
-          <button class="btn filter-btn" data-cat="all">All</button>
-          <button class="btn filter-btn" data-cat="pizza">Pizza</button>
-          <button class="btn filter-btn" data-cat="burger">Burger</button>
-          <button class="btn filter-btn" data-cat="noodles">Noodles</button>
+        <div class="filters mt-4" role="group" aria-label="Filter by category">
+          <button type="button" class="btn filter-btn" data-cat="all">All</button>
+          <!-- JS adds one chip per category from /api/categories -->
         </div>
 
-        <div class="card-list grid mt-4" id="menu-grid">
+        <div class="card-list grid mt-4" id="menu-grid" aria-live="polite">
           <!-- JS will render menu items here -->
         </div>
       </div>

@@ -1,5 +1,6 @@
 /** Checkout page: delivery details form and order summary. */
 import { $ } from "../utils/dom.js";
+import { enableSubmit } from "../utils/forms.js";
 import { escapeHtml, formatPrice } from "../utils/format.js";
 import { getCartItems, computeTotals, placeOrder } from "../store.js";
 
@@ -59,4 +60,5 @@ export function init() {
       window.location.href = "index.html";
     }, REDIRECT_DELAY_MS);
   });
+  enableSubmit(form);
 }

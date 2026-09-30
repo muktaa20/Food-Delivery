@@ -1,5 +1,6 @@
 /** Login and signup forms (shared by login.html and signup.html). */
 import { $ } from "../utils/dom.js";
+import { enableSubmit } from "../utils/forms.js";
 import { signup, login } from "../store.js";
 
 const MIN_PASSWORD_LENGTH = 5;
@@ -33,6 +34,7 @@ function initSignupForm() {
     }
     window.location.href = AFTER_AUTH_URL;
   });
+  enableSubmit(form);
 }
 
 function initLoginForm() {
@@ -57,6 +59,7 @@ function initLoginForm() {
     }
     window.location.href = AFTER_AUTH_URL;
   });
+  enableSubmit(form);
 }
 
 export function init() {
