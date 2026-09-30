@@ -147,6 +147,10 @@ img {
 .desktop-action .hamburger {
   font-size: 1.5rem;
   display: none;
+  background: none;
+  border: none;
+  color: var(--lead);
+  cursor: pointer;
 }
 .mobile-menu {
   display: none;
@@ -358,6 +362,59 @@ h3 {
   margin-top: .6rem;
   font-size: .95rem;
 }
+.small {
+  font-size: .95rem;
+}
+
+/* Toast notifications */
+.toast {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 1000;
+  padding: .6rem 1rem;
+  background: var(--gold-finger);
+  color: var(--pure-white);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Footer */
+.site-footer {
+  margin-top: 5rem;
+  background: var(--pure-white);
+  border-top: 1px solid #eee;
+}
+.footer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2rem;
+  padding-block: 2.5rem;
+}
+.site-footer h4 {
+  margin-bottom: .8rem;
+}
+.site-footer ul {
+  display: grid;
+  gap: .5rem;
+}
+.site-footer a:not(.logo) {
+  font-size: 1rem;
+  color: var(--muted);
+}
+.site-footer a:not(.logo):hover {
+  color: var(--gold-finger);
+}
+.site-footer .fa-solid {
+  color: var(--gold-finger);
+  width: 1.2rem;
+}
+.footer-bottom {
+  text-align: center;
+  font-size: .9rem;
+  padding: 1rem;
+  border-top: 1px solid #eee;
+}
 
 /* Cart styles */
 #cart-container {
@@ -406,7 +463,8 @@ h3 {
 /* Small screens */
 @media screen and (max-width: 780px) {
   .navlist,
-  .desktop-action .btn {
+  .desktop-action .btn,
+  .desktop-action .auth-btn {
     display: none;
   }
 
@@ -432,10 +490,14 @@ h3 {
     box-shadow: rgba(0, 0, 0, 0.05) 8px 8px 8px,
       rgba(0, 0, 0, 0.05) 8px 8px 8px inset;
     transition: all 0.5s ease-in-out;
+    z-index: 100;
+    /* keep the off-screen menu out of the tab order */
+    visibility: hidden;
   }
   .mobile-menu-active {
     left: 50%;
     transform: translateX(-50%);
+    visibility: visible;
   }
 
   h1 {

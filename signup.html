@@ -4,6 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Signup - Foodie</title>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css"
+    integrity="sha512-DxV+EoADOkOygM4IR9yXP8Sb2qwgidEmeqAEmDKIOfPRQZOWbXCzLC6vjbZyy0vPisbH2SyW27+ddLVCN+OMzQ=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
   <link rel="stylesheet" href="style.css" />
   <script defer src="script.js"></script>
 </head>
@@ -11,6 +18,34 @@
   <header>
     <nav class="navbar flex between wraper">
       <a href="index.html" class="logo">Foodie.</a>
+
+      <ul class="navlist flex gap-3">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="menu.html">Menu</a></li>
+        <li><a href="index.html#services">Services</a></li>
+        <li><a href="index.html#reviews">Reviews</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+
+      <div class="desktop-action flex gap-2">
+        <a href="cart.html" class="cart-icon" aria-label="Cart">
+          <i class="fa-solid fa-bag-shopping"></i>
+          <span class="cart-value">0</span>
+        </a>
+        <a href="login.html" class="auth-btn btn">Sign in &nbsp;<i class="fa-solid fa-right-from-bracket"></i></a>
+        <button type="button" class="hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+      </div>
+
+      <ul class="mobile-menu" id="mobile-menu">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="menu.html">Menu</a></li>
+        <li><a href="index.html#services">Services</a></li>
+        <li><a href="index.html#reviews">Reviews</a></li>
+        <li><a href="#contact">Contact</a></li>
+        <li><a href="login.html" class="btn auth-btn">Sign in &nbsp;<i class="fa-solid fa-right-from-bracket"></i></a></li>
+      </ul>
     </nav>
   </header>
 
@@ -21,19 +56,19 @@
         <form id="signup-form" class="auth-form">
           <div class="form-row">
             <label for="su-name">Full name</label>
-            <input id="su-name" name="name" required />
+            <input id="su-name" name="name" autocomplete="name" required />
           </div>
           <div class="form-row">
             <label for="su-username">Username</label>
-            <input id="su-username" name="username" required />
+            <input id="su-username" name="username" autocomplete="username" required />
           </div>
           <div class="form-row">
             <label for="su-email">Email</label>
-            <input id="su-email" name="email" type="email" required />
+            <input id="su-email" name="email" type="email" autocomplete="email" required />
           </div>
           <div class="form-row">
             <label for="su-password">Password</label>
-            <input id="su-password" name="password" type="password" required />
+            <input id="su-password" name="password" type="password" autocomplete="new-password" required />
           </div>
           <div class="form-row">
             <button class="btn" type="submit">Create account</button>
@@ -44,5 +79,30 @@
       </div>
     </section>
   </main>
+
+  <footer class="site-footer">
+    <div class="wraper footer-grid" id="contact">
+      <div>
+        <a href="index.html" class="logo">Foodie.</a>
+        <p class="small">Delicious food, delivered fast.</p>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <ul>
+          <li><a href="menu.html">Menu</a></li>
+          <li><a href="cart.html">Cart</a></li>
+          <li><a href="index.html#services">Services</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><i class="fa-solid fa-envelope"></i> <a href="mailto:hello@foodie.example">hello@foodie.example</a></li>
+          <li><i class="fa-solid fa-phone"></i> <a href="tel:+911234567890">+91 12345 67890</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="footer-bottom">&copy; 2026 Foodie. All rights reserved.</p>
+  </footer>
 </body>
 </html>

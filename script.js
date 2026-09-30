@@ -30,7 +30,7 @@ const PRODUCTS = [
     id: "p2",
     title: "Pepperoni Pizza",
     price: 199,
-    img: "images/pizza.jpg",
+    img: "images/cheesepizza.jpg",
     category: "pizza",
     popular: true,
     desc: "Classic pepperoni pizza"
@@ -111,34 +111,54 @@ document.addEventListener("DOMContentLoaded", () => {
   initCartPage();
   initCheckoutPage();
   initSwiper();
+  initMobileMenu();
+  initComingSoon();
 
-  // mobile menu toggle
-  const hamburgers = $$(".hamburger");
-  hamburgers.forEach((h) => {
-    h.addEventListener("click", (e) => {
-      const mobile = document.querySelector(".mobile-menu");
-      if (mobile) mobile.classList.toggle("mobile-menu-active");
-    });
-  });
-
-  // auth button behaviour
+  // auth button: logged in -> logout; logged out -> follow the href to login.html
   $$(".auth-btn").forEach(btn => {
     btn.addEventListener("click", (ev) => {
-      const auth = getAuth();
-      if (auth) {
-        // logout
-        localStorage.removeItem(LS_AUTH);
-        saveAuth(null);
-        alert("Logged out");
-        updateAuthUi();
-      } else {
-        window.location.href = "login.html";
-      }
+      if (!getAuth()) return;
+      ev.preventDefault();
+      localStorage.removeItem(LS_AUTH);
+      showToast("Logged out");
+      updateAuthUi();
     });
   });
 
   updateAuthUi();
 });
+
+/* ========== Mobile menu ========== */
+function initMobileMenu() {
+  const toggle = $(".hamburger");
+  const menu = $(".mobile-menu");
+  if (!toggle || !menu) return;
+
+  const setOpen = (open) => {
+    menu.classList.toggle("mobile-menu-active", open);
+    toggle.setAttribute("aria-expanded", String(open));
+    toggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+  };
+
+  toggle.addEventListener("click", () => {
+    setOpen(!menu.classList.contains("mobile-menu-active"));
+  });
+  menu.addEventListener("click", (e) => {
+    if (e.target.closest("a")) setOpen(false);
+  });
+  document.addEventListener("click", (e) => {
+    if (!menu.contains(e.target) && !toggle.contains(e.target)) setOpen(false);
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") setOpen(false);
+  });
+}
+
+function initComingSoon() {
+  $$("[data-coming-soon]").forEach(btn => {
+    btn.addEventListener("click", () => showToast(btn.dataset.comingSoon));
+  });
+}
 
 /* ========== NAVBAR & auth UI ========== */
 function initNavbar() {
@@ -162,7 +182,7 @@ function updateAuthUi() {
 
 /* ========== RENDER Popular on Home ========== */
 function renderPopularOnHome() {
-  const container = document.querySelector("section .card-list");
+  const container = $("#popular-list");
   if (!container) return;
   container.innerHTML = "";
   const pop = PRODUCTS.filter(p => p.popular);
@@ -255,18 +275,16 @@ function addToCart(id, qty = 1) {
 
 function animateCartAdd() {
   renderCartCount();
-  // small visual feedback - toast
+  showToast("Added to cart");
+}
+
+function showToast(message, duration = 1200) {
   const el = document.createElement("div");
-  el.textContent = "Added to cart";
-  el.style.position = "fixed";
-  el.style.right = "1rem";
-  el.style.bottom = "1rem";
-  el.style.padding = ".6rem 1rem";
-  el.style.background = "var(--gold-finger)";
-  el.style.color = "white";
-  el.style.borderRadius = "8px";
+  el.className = "toast";
+  el.setAttribute("role", "status");
+  el.textContent = message;
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 1200);
+  setTimeout(() => el.remove(), duration);
 }
 
 function renderCartCount() {
@@ -395,6 +413,10 @@ function initCheckoutPage() {
 
   form.addEventListener("submit", (ev) => {
     ev.preventDefault();
+    if (Object.keys(getCart()).length === 0) {
+      $("#checkout-msg").textContent = "Your cart is empty. Add some dishes first.";
+      return;
+    }
     const name = form["name"].value.trim();
     const phone = form["phone"].value.trim();
     const address = form["address"].value.trim();
@@ -524,6 +546,20 @@ function initSwiper() {
     // silent
   }
 }
+
+/* ========== Image fallback for missing product photos ========== */
+const FALLBACK_IMG =
+  "data:image/svg+xml;charset=utf-8," +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><rect width="400" height="300" fill="#ffe9d6"/><text x="200" y="165" font-family="Poppins,sans-serif" font-size="36" font-weight="700" fill="#fc8019" text-anchor="middle">Foodie.</text></svg>`
+  );
+
+// "error" doesn't bubble, so listen in the capture phase to catch images rendered later.
+document.addEventListener("error", (e) => {
+  const img = e.target;
+  if (img.tagName !== "IMG" || img.src === FALLBACK_IMG) return;
+  img.src = FALLBACK_IMG;
+}, true);
 
 /* ======= small safe fallback for module-less env ===== */
 window.addToCart = addToCart;
