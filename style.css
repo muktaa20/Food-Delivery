@@ -90,9 +90,18 @@ img {
 }
 
 /* Header Styling */
+/* Reserve the navbar's height so content doesn't jump while JS mounts the header. */
+#site-header {
+  min-height: 14vh;
+}
 .navbar {
   min-height: 14vh;
   align-items: center;
+}
+.navlist a[aria-current="page"],
+.mobile-menu a[aria-current="page"] {
+  color: var(--gold-finger);
+  font-weight: 600;
 }
 
 .logo {
