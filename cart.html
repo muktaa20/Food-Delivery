@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cart - Foodie</title>
+  <link rel="stylesheet" href="style.css" />
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <header>
+    <nav class="navbar flex between wraper">
+      <a href="index.html" class="logo">Foodie.</a>
+      <div class="desktop-action flex gap-2">
+        <a href="cart.html" class="cart-icon">
+          <i class="fa-solid fa-bag-shopping"></i>
+          <span class="cart-value">0</span>
+        </a>
+        <a href="menu.html" class="btn">Continue shopping</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section>
+      <div class="wraper p-top">
+        <div class="text-center">
+          <h2>Your Cart</h2>
+        </div>
+
+        <div id="cart-container" class="mt-4">
+          <!-- cart items will be injected here -->
+        </div>
+
+        <div id="cart-summary" class="mt-4 text-center">
+          <!-- summary & checkout button here -->
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

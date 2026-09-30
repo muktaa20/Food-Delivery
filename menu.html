@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Menu - Foodie</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" />
+  <link rel="stylesheet" href="style.css" />
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <header>
+    <nav class="navbar flex between wraper">
+      <a href="index.html" class="logo">Foodie.</a>
+      <ul class="navlist flex gap-3">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="menu.html">Menu</a></li>
+        <li><a href="#">Service</a></li>
+        <li><a href="#">About Us</a></li>
+        <li><a href="#">Contacts</a></li>
+      </ul>
+
+      <div class="desktop-action flex gap-2">
+        <a href="cart.html" class="cart-icon">
+          <i class="fa-solid fa-bag-shopping"></i>
+          <span class="cart-value">0</span>
+        </a>
+
+        <a href="#" class="auth-btn btn">Sign in &nbsp;
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </a>
+        <a href="#" class="hamburger"><i class="fa-solid fa-bars"></i></a>
+      </div>
+
+      <ul class="mobile-menu">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="menu.html">Menu</a></li>
+        <li><a href="#">Service</a></li>
+        <li><a href="#">About Us</a></li>
+        <li><a href="#">Contacts</a></li>
+        <li><a href="#" class="btn auth-btn">Sign in &nbsp;<i class="fa-solid fa-right-from-bracket"></i></a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <section>
+      <div class="wraper p-top">
+        <div class="text-center">
+          <h5>Menu</h5>
+          <h2>Explore our dishes</h2>
+        </div>
+
+        <div class="filters text-center mt-4">
+          <button class="btn filter-btn" data-cat="all">All</button>
+          <button class="btn filter-btn" data-cat="pizza">Pizza</button>
+          <button class="btn filter-btn" data-cat="burger">Burger</button>
+          <button class="btn filter-btn" data-cat="noodles">Noodles</button>
+        </div>
+
+        <div class="card-list grid mt-4" id="menu-grid">
+          <!-- JS will render menu items here -->
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer></footer>
+</body>
+</html>

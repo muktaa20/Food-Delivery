@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Signup - Foodie</title>
+  <link rel="stylesheet" href="style.css" />
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <header>
+    <nav class="navbar flex between wraper">
+      <a href="index.html" class="logo">Foodie.</a>
+    </nav>
+  </header>
+
+  <main>
+    <section>
+      <div class="wraper p-top text-center">
+        <h2>Sign Up</h2>
+        <form id="signup-form" class="auth-form">
+          <div class="form-row">
+            <label for="su-name">Full name</label>
+            <input id="su-name" name="name" required />
+          </div>
+          <div class="form-row">
+            <label for="su-username">Username</label>
+            <input id="su-username" name="username" required />
+          </div>
+          <div class="form-row">
+            <label for="su-email">Email</label>
+            <input id="su-email" name="email" type="email" required />
+          </div>
+          <div class="form-row">
+            <label for="su-password">Password</label>
+            <input id="su-password" name="password" type="password" required />
+          </div>
+          <div class="form-row">
+            <button class="btn" type="submit">Create account</button>
+          </div>
+          <p class="small">Already have an account? <a href="login.html">Login</a></p>
+          <div id="signup-error" class="error-msg"></div>
+        </form>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

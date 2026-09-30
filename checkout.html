@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Checkout - Foodie</title>
+  <link rel="stylesheet" href="style.css" />
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <header>
+    <nav class="navbar flex between wraper">
+      <a href="index.html" class="logo">Foodie.</a>
+    </nav>
+  </header>
+
+  <main>
+    <section>
+      <div class="wraper p-top">
+        <div class="text-center">
+          <h2>Checkout</h2>
+        </div>
+
+        <div class="checkout-grid mt-4">
+          <div class="checkout-left">
+            <form id="checkout-form">
+              <div class="form-row">
+                <label for="c-name">Full name</label>
+                <input id="c-name" name="name" required />
+              </div>
+              <div class="form-row">
+                <label for="c-phone">Phone</label>
+                <input id="c-phone" name="phone" required />
+              </div>
+              <div class="form-row">
+                <label for="c-address">Address</label>
+                <textarea id="c-address" name="address" rows="4" required></textarea>
+              </div>
+              <div class="form-row">
+                <button class="btn" type="submit">Place Order</button>
+              </div>
+            </form>
+            <div id="checkout-msg" class="error-msg"></div>
+          </div>
+
+          <div class="checkout-right" id="checkout-summary">
+            <!-- order summary injected here -->
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+</body>
+</html>
