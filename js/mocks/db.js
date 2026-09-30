@@ -14,7 +14,7 @@ const DB_NAME = "foodie-mock-db";
 // Bump when stores/indexes change (schema), and add the change to onupgradeneeded.
 const DB_VERSION = 2;
 // Bump when seed data changes to reload the catalog for existing visitors.
-const SEED_VERSION = 2;
+const SEED_VERSION = 3;
 
 export const STORES = Object.freeze({
   restaurants: "restaurants",
