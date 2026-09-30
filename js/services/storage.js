@@ -9,6 +9,8 @@ export const KEYS = Object.freeze({
   legacyCart: "fd_cart_v1", // read once to migrate, then deleted
   cart: "fd_cart_v2",
   coupon: "fd_coupon_v1",
+  activeOrder: "fd_active_order_v1",
+  address: "fd_address_v1",
   users: "fd_users_v1",
   auth: "fd_auth_v1",
   recentSearches: "fd_recent_searches_v1",

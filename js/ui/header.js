@@ -5,7 +5,7 @@
  */
 import { $, $$ } from "../utils/dom.js";
 import { escapeHtml } from "../utils/format.js";
-import { getAuth, getCartCount, logout, subscribe } from "../store.js";
+import { getActiveOrderId, getAuth, getCartCount, logout, subscribe } from "../store.js";
 import { showToast } from "./toast.js";
 
 const NAV_LINKS = [
@@ -35,6 +35,9 @@ function headerHTML(page) {
       <ul class="navlist flex gap-3">${navItemsHTML(page)}</ul>
 
       <div class="desktop-action flex gap-2">
+        <a href="order.html" class="track-link" hidden>
+          <i class="fa-solid fa-location-dot" aria-hidden="true"></i> Track order
+        </a>
         <a href="cart.html" class="cart-icon" aria-label="Cart">
           <i class="fa-solid fa-bag-shopping"></i>
           <span class="cart-value">0</span>
@@ -47,6 +50,7 @@ function headerHTML(page) {
 
       <ul class="mobile-menu" id="mobile-menu">
         ${navItemsHTML(page)}
+        <li class="track-item" hidden><a href="order.html" class="track-link">Track order</a></li>
         <li><a href="login.html" class="btn auth-btn">Sign in &nbsp;${LOGOUT_ICON}</a></li>
       </ul>
     </nav>
@@ -56,6 +60,16 @@ function headerHTML(page) {
 function renderCartCount() {
   const count = getCartCount();
   $$(".cart-value").forEach((el) => (el.textContent = count));
+}
+
+function renderTrackLink() {
+  const orderId = getActiveOrderId();
+  const href = orderId ? `order.html?id=${encodeURIComponent(orderId)}` : "order.html";
+  $$(".track-link").forEach((link) => {
+    link.href = href;
+    link.hidden = !orderId;
+  });
+  $$(".track-item").forEach((item) => (item.hidden = !orderId));
 }
 
 function renderAuthButtons() {
@@ -115,6 +129,7 @@ export function initHeader() {
 
   mount.innerHTML = headerHTML(currentPage());
   renderCartCount();
+  renderTrackLink();
   renderAuthButtons();
   bindAuthButtons();
   bindMobileMenu();
@@ -122,5 +137,6 @@ export function initHeader() {
   subscribe(({ type }) => {
     if (type === "cart") renderCartCount();
     if (type === "auth") renderAuthButtons();
+    if (type === "order") renderTrackLink();
   });
 }

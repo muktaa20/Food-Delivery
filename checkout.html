@@ -24,32 +24,176 @@
           <h2>Checkout</h2>
         </div>
 
-        <div class="checkout-grid mt-4">
+        <div id="checkout-root" class="checkout-grid mt-4">
           <div class="checkout-left">
-            <form id="checkout-form">
-              <div class="form-row">
-                <label for="c-name">Full name</label>
-                <input id="c-name" name="name" required />
-              </div>
-              <div class="form-row">
-                <label for="c-phone">Phone</label>
-                <input id="c-phone" name="phone" type="tel" required />
-              </div>
-              <div class="form-row">
-                <label for="c-address">Address</label>
-                <textarea id="c-address" name="address" rows="4" required></textarea>
-              </div>
-              <div class="form-row">
-                <!-- Enabled by JS once the submit handler is attached. -->
-                <button class="btn" type="submit" disabled>Place Order</button>
-              </div>
+            <ol class="stepper" aria-label="Checkout steps">
+              <li data-step="address"><button type="button" data-goto="address"><span>1</span> Address</button></li>
+              <li data-step="payment"><button type="button" data-goto="payment"><span>2</span> Payment</button></li>
+              <li data-step="review"><button type="button" data-goto="review"><span>3</span> Review</button></li>
+            </ol>
+
+            <!-- novalidate: validation is done in JS so errors can be shown inline, per step. -->
+            <form id="checkout-form" class="checkout-card" novalidate>
+              <!-- Step 1: delivery address -->
+              <fieldset class="step" data-step="address">
+                <legend>Delivery address</legend>
+
+                <button type="button" class="btn btn-ghost locate-btn" id="use-location">
+                  <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i> Use my current location
+                </button>
+                <p id="location-status" class="small location-status" role="status"></p>
+
+                <div class="form-grid-2">
+                  <div class="form-row">
+                    <label for="c-name">Full name</label>
+                    <input id="c-name" name="name" autocomplete="name" aria-describedby="err-name" />
+                    <p class="field-error" id="err-name"></p>
+                  </div>
+                  <div class="form-row">
+                    <label for="c-phone">Mobile number</label>
+                    <input id="c-phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel-national"
+                      placeholder="10-digit number" aria-describedby="err-phone" />
+                    <p class="field-error" id="err-phone"></p>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <label for="c-flat">Flat / house no., building</label>
+                  <input id="c-flat" name="flat" autocomplete="address-line1" aria-describedby="err-flat" />
+                  <p class="field-error" id="err-flat"></p>
+                </div>
+                <div class="form-row">
+                  <label for="c-area">Street, area</label>
+                  <input id="c-area" name="area" autocomplete="address-line2" aria-describedby="err-area" />
+                  <p class="field-error" id="err-area"></p>
+                </div>
+                <div class="form-row">
+                  <label for="c-landmark">Landmark <span class="muted">(optional)</span></label>
+                  <input id="c-landmark" name="landmark" />
+                </div>
+                <div class="form-grid-2">
+                  <div class="form-row">
+                    <label for="c-city">City</label>
+                    <input id="c-city" name="city" autocomplete="address-level2" aria-describedby="err-city" />
+                    <p class="field-error" id="err-city"></p>
+                  </div>
+                  <div class="form-row">
+                    <label for="c-pincode">PIN code</label>
+                    <input id="c-pincode" name="pincode" inputmode="numeric" maxlength="6" autocomplete="postal-code"
+                      aria-describedby="err-pincode" />
+                    <p class="field-error" id="err-pincode"></p>
+                  </div>
+                </div>
+
+                <div class="step-actions">
+                  <a href="cart.html" class="btn btn-ghost">Back to cart</a>
+                  <button type="submit" class="btn" disabled>Continue to payment</button>
+                </div>
+              </fieldset>
+
+              <!-- Step 2: payment method -->
+              <fieldset class="step" data-step="payment" hidden>
+                <legend>Payment method</legend>
+
+                <div class="pay-options">
+                  <label class="pay-option">
+                    <input type="radio" name="payment" value="cod" checked />
+                    <i class="fa-solid fa-money-bill-wave" aria-hidden="true"></i>
+                    <span><strong>Cash on delivery</strong><small>Pay when your food arrives</small></span>
+                  </label>
+                  <label class="pay-option">
+                    <input type="radio" name="payment" value="upi" />
+                    <i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>
+                    <span><strong>UPI</strong><small>Google Pay, PhonePe, Paytm and more</small></span>
+                  </label>
+                  <label class="pay-option">
+                    <input type="radio" name="payment" value="card" />
+                    <i class="fa-solid fa-credit-card" aria-hidden="true"></i>
+                    <span><strong>Credit / debit card</strong><small>Visa, Mastercard, RuPay, Amex</small></span>
+                  </label>
+                </div>
+
+                <div class="pay-details" data-method="upi" hidden>
+                  <div class="form-row">
+                    <label for="c-upi">UPI ID</label>
+                    <input id="c-upi" name="upiId" placeholder="name@okaxis" autocomplete="off" spellcheck="false"
+                      aria-describedby="err-upiId" />
+                    <p class="field-error" id="err-upiId"></p>
+                  </div>
+                </div>
+
+                <div class="pay-details" data-method="card" hidden>
+                  <div class="form-row">
+                    <label for="c-card">Card number <span id="card-brand" class="card-brand"></span></label>
+                    <input id="c-card" name="cardNumber" inputmode="numeric" autocomplete="cc-number"
+                      placeholder="1234 5678 9012 3456" aria-describedby="err-cardNumber" />
+                    <p class="field-error" id="err-cardNumber"></p>
+                  </div>
+                  <div class="form-grid-2">
+                    <div class="form-row">
+                      <label for="c-expiry">Expiry (MM/YY)</label>
+                      <input id="c-expiry" name="expiry" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/YY"
+                        maxlength="5" aria-describedby="err-expiry" />
+                      <p class="field-error" id="err-expiry"></p>
+                    </div>
+                    <div class="form-row">
+                      <label for="c-cvv">CVV</label>
+                      <input id="c-cvv" name="cvv" type="password" inputmode="numeric" autocomplete="cc-csc"
+                        maxlength="4" aria-describedby="err-cvv" />
+                      <p class="field-error" id="err-cvv"></p>
+                    </div>
+                  </div>
+                </div>
+
+                <p class="small muted demo-note">
+                  <i class="fa-solid fa-lock" aria-hidden="true"></i>
+                  Demo checkout: no payment is processed. Only a card's brand and last 4 digits are saved.
+                  Try test card 4111 1111 1111 1111.
+                </p>
+
+                <div class="step-actions">
+                  <button type="button" class="btn btn-ghost" data-goto="address">Back</button>
+                  <button type="submit" class="btn" disabled>Review order</button>
+                </div>
+              </fieldset>
+
+              <!-- Step 3: review, tip, place order -->
+              <fieldset class="step" data-step="review" hidden>
+                <legend>Review &amp; place order</legend>
+
+                <div class="review-block">
+                  <div>
+                    <h4>Deliver to</h4>
+                    <p id="review-address"></p>
+                  </div>
+                  <button type="button" class="link-btn" data-goto="address">Change</button>
+                </div>
+                <div class="review-block">
+                  <div>
+                    <h4>Payment</h4>
+                    <p id="review-payment"></p>
+                  </div>
+                  <button type="button" class="link-btn" data-goto="payment">Change</button>
+                </div>
+                <div class="review-block tip-block">
+                  <div>
+                    <h4>Tip your delivery partner</h4>
+                    <p class="small muted">100% of the tip goes to your rider.</p>
+                    <div class="tip-options" id="tip-options"></div>
+                  </div>
+                </div>
+
+                <div class="step-actions">
+                  <button type="button" class="btn btn-ghost" data-goto="payment">Back</button>
+                  <button type="submit" class="btn" id="place-order" disabled>Place order</button>
+                </div>
+              </fieldset>
             </form>
-            <div id="checkout-msg" class="error-msg"></div>
+            <p id="checkout-msg" class="error-msg" role="alert"></p>
           </div>
 
-          <div class="checkout-right" id="checkout-summary">
-            <!-- order summary injected here -->
-          </div>
+          <aside class="checkout-right" id="checkout-summary" aria-live="polite">
+            <!-- order summary rendered by js/pages/checkout.js -->
+          </aside>
         </div>
       </div>
     </section>

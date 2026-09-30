@@ -8,10 +8,12 @@
  */
 
 export class ApiError extends Error {
-  constructor(message, status) {
+  /** @param {string} [code] - machine-readable reason from the server, e.g. "COUPON_INVALID" */
+  constructor(message, status, code) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -41,24 +43,34 @@ function toQueryString(params = {}) {
 
 /**
  * @param {string} path - e.g. "menu?category=pizza"
- * @param {{ signal?: AbortSignal }} [options] - aborting rejects with an AbortError, which callers should ignore
+ * @param {{ signal?: AbortSignal, method?: string, body?: object, headers?: object }} [options]
+ *   Aborting rejects with an AbortError, which callers should ignore.
  */
-async function request(path, { signal } = {}) {
+async function request(path, { signal, method = "GET", body, headers = {} } = {}) {
   await ensureBackend();
 
   let response;
   try {
-    response = await fetch(`${BASE_URL}/${path}`, { signal, headers: { Accept: "application/json" } });
+    response = await fetch(`${BASE_URL}/${path}`, {
+      method,
+      signal,
+      headers: {
+        Accept: "application/json",
+        ...(body !== undefined && { "Content-Type": "application/json" }),
+        ...headers,
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
   } catch (err) {
     if (err.name === "AbortError") throw err;
     throw new ApiError("Network error. Check your connection and try again.", 0);
   }
 
-  const body = await response.json().catch(() => null);
+  const data = await response.json().catch(() => null);
   if (!response.ok) {
-    throw new ApiError(body?.message || `Request failed with status ${response.status}.`, response.status);
+    throw new ApiError(data?.message || `Request failed with status ${response.status}.`, response.status, data?.code);
   }
-  return body;
+  return data;
 }
 
 export const api = {
@@ -69,6 +81,10 @@ export const api = {
   getRestaurant: (id, options) => request(`restaurants/${encodeURIComponent(id)}`, options),
   getCoupons: (options) => request("coupons", options),
   getOrders: (options) => request("orders", options),
+  getOrder: (id, options) => request(`orders/${encodeURIComponent(id)}`, options),
+  /** @param {string} idempotencyKey - reuse the same key when retrying, so the order isn't placed twice */
+  placeOrder: (order, idempotencyKey) =>
+    request("orders", { method: "POST", body: order, headers: { "Idempotency-Key": idempotencyKey } }),
 };
 
 export const isAbortError = (err) => err?.name === "AbortError";

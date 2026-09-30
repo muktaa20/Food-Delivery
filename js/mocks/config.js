@@ -4,7 +4,8 @@
  *
  *   ?latency=2000     fixed response delay in ms (default: random 300-800 ms)
  *   ?errorRate=0.3    fraction of requests that fail with HTTP 500 (default: 0)
- *   ?mock=reset       clear both overrides
+ *   ?speed=10         run new orders' delivery timeline 10x faster (default: 1)
+ *   ?mock=reset       clear all overrides
  *
  * Overrides are kept in sessionStorage, so they apply to every page for the
  * rest of the tab session.
@@ -27,11 +28,12 @@ function toNumberInRange(value, min, max) {
 
 function applyUrlOverrides() {
   const params = new URLSearchParams(location.search);
-  if (!["latency", "errorRate", "mock"].some((key) => params.has(key))) return;
+  if (!["latency", "errorRate", "speed", "mock"].some((key) => params.has(key))) return;
 
   const saved = params.get("mock") === "reset" ? {} : readSaved();
   if (params.has("latency")) saved.latency = toNumberInRange(params.get("latency"), 0, 10_000);
   if (params.has("errorRate")) saved.errorRate = toNumberInRange(params.get("errorRate"), 0, 1);
+  if (params.has("speed")) saved.speed = toNumberInRange(params.get("speed"), 1, 100);
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
 }
 
@@ -43,6 +45,7 @@ export function getMockConfig() {
   return {
     latency: saved.latency ?? null,
     errorRate: saved.errorRate ?? 0,
+    speed: saved.speed ?? 1,
   };
 }
 

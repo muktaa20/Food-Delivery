@@ -8,13 +8,16 @@
  *   GET /api/categories               categories with item counts
  *   GET /api/coupons                  available offers
  *   GET /api/orders                   past orders, newest first
+ *   GET /api/orders/:id               one order with its live status and rider position
+ *   POST /api/orders                  place an order (re-priced and validated server-side)
  *
  * Paths start with "*" so they match when the site is served from a
  * sub-path (e.g. GitHub Pages at /FoodDelivery/).
  */
 import { http, HttpResponse, delay } from "../vendor/msw.js";
 import { getMockConfig, nextLatency } from "./config.js";
-import { getAll, getById, STORES } from "./db.js";
+import { getAll, getById, put, STORES } from "./db.js";
+import { buildOrder, OrderError, withProgress } from "./orders.js";
 import { queryMenu } from "../domain/menuQuery.js";
 
 const notFound = (message) => HttpResponse.json({ message }, { status: 404 });
@@ -109,7 +112,50 @@ export const handlers = [
     "*/api/orders",
     withNetwork(async () => {
       const orders = await getAll(STORES.orders);
-      return HttpResponse.json(orders.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+      const now = new Date();
+      return HttpResponse.json(
+        orders.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map((order) => withProgress(order, now))
+      );
+    })
+  ),
+
+  http.get(
+    "*/api/orders/:id",
+    withNetwork(async ({ params }) => {
+      const order = await getById(STORES.orders, params.id);
+      if (!order) return notFound(`Order "${params.id}" not found.`);
+      return HttpResponse.json(withProgress(order));
+    })
+  ),
+
+  // Retrying with the same Idempotency-Key returns the original order instead of a duplicate.
+  http.post(
+    "*/api/orders",
+    withNetwork(async ({ request }) => {
+      const body = await request.json().catch(() => null);
+      const idempotencyKey = request.headers.get("Idempotency-Key");
+      const orders = await getAll(STORES.orders);
+      const existing = idempotencyKey && orders.find((o) => o.idempotencyKey === idempotencyKey);
+      if (existing) return HttpResponse.json(withProgress(existing));
+
+      try {
+        const [menu, coupons] = await Promise.all([withRestaurant(await getAll(STORES.menuItems)), getAll(STORES.coupons)]);
+        const order = buildOrder({
+          body,
+          menuById: new Map(menu.map((item) => [item.id, item])),
+          coupons,
+          isFirstOrder: orders.length === 0,
+          speed: getMockConfig().speed,
+          idempotencyKey,
+        });
+        await put(STORES.orders, order);
+        return HttpResponse.json(withProgress(order), { status: 201 });
+      } catch (err) {
+        if (err instanceof OrderError) {
+          return HttpResponse.json({ message: err.message, code: err.code }, { status: err.status });
+        }
+        throw err;
+      }
     })
   ),
 ];

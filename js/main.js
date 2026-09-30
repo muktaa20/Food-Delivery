@@ -14,6 +14,7 @@ const PAGE_MODULES = {
   menu: () => import("./pages/menu.js"),
   cart: () => import("./pages/cart.js"),
   checkout: () => import("./pages/checkout.js"),
+  order: () => import("./pages/order.js"),
   login: () => import("./pages/auth.js"),
   signup: () => import("./pages/auth.js"),
 };

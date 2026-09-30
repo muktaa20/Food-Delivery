@@ -22,7 +22,7 @@ import { normalizeCode } from "./domain/coupons.js";
 const listeners = new Set();
 
 /**
- * Listen for state changes. The callback receives `{ type: "cart" | "auth" }`.
+ * Listen for state changes. The callback receives `{ type: "cart" | "auth" | "order" }`.
  * @returns {() => void} unsubscribe function
  */
 export function subscribe(listener) {
@@ -38,6 +38,7 @@ function emit(type) {
 window.addEventListener("storage", (e) => {
   if (e.key === KEYS.cart || e.key === KEYS.coupon) emit("cart");
   else if (e.key === KEYS.auth) emit("auth");
+  else if (e.key === KEYS.activeOrder) emit("order");
 });
 
 /* ---------- Cart ---------- */
@@ -131,6 +132,31 @@ export function removeCoupon() {
   removeKey(KEYS.coupon);
   emit("cart");
 }
+
+/* ---------- Orders ---------- */
+
+/** The order currently being delivered, shown as "Track order" in the header. */
+export const getActiveOrderId = () => readJSON(KEYS.activeOrder, null);
+
+/** Called after a successful checkout: empties the cart and starts tracking. */
+export function completeCheckout(orderId) {
+  removeKey(KEYS.cart);
+  removeKey(KEYS.coupon);
+  writeJSON(KEYS.activeOrder, orderId);
+  emit("cart");
+  emit("order");
+}
+
+export function clearActiveOrder(orderId) {
+  if (orderId && getActiveOrderId() !== orderId) return;
+  removeKey(KEYS.activeOrder);
+  emit("order");
+}
+
+/** Last delivery address, used to prefill checkout. */
+export const getSavedAddress = () => readJSON(KEYS.address, null);
+
+export const saveAddress = (address) => writeJSON(KEYS.address, address);
 
 /* ---------- Users & session ----------
  * Demo-only auth: passwords are stored in plain text in localStorage.
