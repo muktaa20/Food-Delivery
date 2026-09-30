@@ -1,14 +1,21 @@
 /**
- * App state: cart, users and the current session.
+ * App state: cart, applied coupon, users and the current session.
  *
  * State lives in localStorage (via services/storage.js). Every mutation goes
  * through a function in this module, which persists the change and notifies
  * subscribers, so UI pieces like the header badge and cart page stay in sync
- * without calling each other.
+ * without calling each other. Cart rules themselves live in domain/cart.js.
  */
 import { KEYS, readJSON, writeJSON, removeKey } from "./services/storage.js";
-
-export const DELIVERY_FEE = 30;
+import {
+  addItem,
+  cartCount,
+  emptyCart,
+  migrateV1,
+  normalizeCart,
+  setItemQty,
+} from "./domain/cart.js";
+import { normalizeCode } from "./domain/coupons.js";
 
 /* ---------- Subscriptions ---------- */
 
@@ -27,22 +34,31 @@ function emit(type) {
   listeners.forEach((listener) => listener({ type }));
 }
 
-/* ---------- Cart ----------
- * Shape: { [productId]: { id, title, price, img, qty } }
- * Items are snapshots, so the cart renders without waiting for the API.
- */
+// Keep tabs in sync: another tab changing the cart or logging out updates this one.
+window.addEventListener("storage", (e) => {
+  if (e.key === KEYS.cart || e.key === KEYS.coupon) emit("cart");
+  else if (e.key === KEYS.auth) emit("auth");
+});
 
+/* ---------- Cart ---------- */
+
+/** One-time upgrade from the v1 format (full product snapshots) to v2 (ids + quantities). */
+function migrateLegacyCart() {
+  const legacy = readJSON(KEYS.legacyCart, null);
+  if (!legacy) return;
+  if (!readJSON(KEYS.cart, null)) writeJSON(KEYS.cart, migrateV1(legacy));
+  removeKey(KEYS.legacyCart);
+}
+migrateLegacyCart();
+
+/** @returns {{ restaurant: { id: string, name: string } | null, items: { [id: string]: number } }} */
 export function getCart() {
-  return readJSON(KEYS.cart, {});
+  return normalizeCart(readJSON(KEYS.cart, emptyCart()));
 }
 
-export function getCartItems() {
-  return Object.values(getCart());
-}
+export const getCartCount = () => cartCount(getCart());
 
-export function getCartCount() {
-  return getCartItems().reduce((sum, item) => sum + Number(item.qty), 0);
-}
+export const getItemQty = (id) => getCart().items[id] ?? 0;
 
 function saveCart(cart) {
   writeJSON(KEYS.cart, cart);
@@ -50,42 +66,48 @@ function saveCart(cart) {
 }
 
 /**
- * @param {{ id: string, title: string, price: number, img: string }} product - as returned by the API
- * @returns {boolean} false if no product was given
+ * @param {{ id: string, restaurant?: { id: string, name: string } }} product - as returned by the API
+ * @returns {{ ok: true } | { ok: false, conflict?: { current: object, incoming: object } }}
+ *   `conflict` means the dish is from another restaurant; ask the user, then call `replaceCartWith`.
  */
 export function addToCart(product, qty = 1) {
-  if (!product?.id) return false;
-
-  const { id } = product;
-  const cart = getCart();
-  if (cart[id]) {
-    cart[id].qty = Number(cart[id].qty) + Number(qty);
-  } else {
-    cart[id] = {
-      id: product.id,
-      title: product.title,
-      price: Number(product.price),
-      img: product.img,
-      qty: Number(qty),
-    };
-  }
+  if (!product?.id) return { ok: false };
+  const current = getCart();
+  const { cart, conflict } = addItem(current, product, qty);
+  if (conflict) return { ok: false, conflict: { current: current.restaurant, incoming: product.restaurant } };
   saveCart(cart);
-  return true;
+  return { ok: true };
+}
+
+/** Empty the cart (and any coupon) and start again with `product`. */
+export function replaceCartWith(product, qty = 1) {
+  removeKey(KEYS.coupon);
+  saveCart(addItem(emptyCart(), product, qty).cart);
+}
+
+export function setQty(id, qty) {
+  saveCart(setItemQty(getCart(), id, qty));
 }
 
 /** Adjust quantity by `delta`; the line is removed when it reaches 0. */
 export function changeQty(id, delta) {
-  const cart = getCart();
-  if (!cart[id]) return;
-  cart[id].qty = Number(cart[id].qty) + delta;
-  if (cart[id].qty <= 0) delete cart[id];
-  saveCart(cart);
+  setQty(id, getItemQty(id) + delta);
 }
 
 export function removeFromCart(id) {
+  setQty(id, 0);
+}
+
+/** Put back a cart captured earlier with getCart(), e.g. for "Undo". */
+export function restoreCart(cart) {
+  saveCart(normalizeCart(cart));
+}
+
+/** v1 carts don't know their restaurant; the cart page fills it in once products load. */
+export function setCartRestaurant(restaurant) {
   const cart = getCart();
-  delete cart[id];
-  saveCart(cart);
+  if (cart.restaurant || !restaurant) return;
+  writeJSON(KEYS.cart, { ...cart, restaurant: { id: restaurant.id, name: restaurant.name } });
 }
 
 export function clearCart() {
@@ -93,31 +115,21 @@ export function clearCart() {
   emit("cart");
 }
 
-/** Single source of truth for order pricing, shared by cart and checkout. */
-export function computeTotals(items = getCartItems()) {
-  const subtotal = items.reduce((sum, item) => sum + Number(item.price) * Number(item.qty), 0);
-  const delivery = subtotal > 0 ? DELIVERY_FEE : 0;
-  return { subtotal, delivery, total: subtotal + delivery };
+/* ---------- Coupon ----------
+ * Only the code is stored. Whether it still applies (minimum order, expiry,
+ * first order) is re-evaluated by the pricing engine every time totals are shown.
+ */
+
+export const getCouponCode = () => readJSON(KEYS.coupon, null);
+
+export function applyCouponCode(code) {
+  writeJSON(KEYS.coupon, normalizeCode(code));
+  emit("cart");
 }
 
-/* ---------- Orders ---------- */
-
-/**
- * Build an order from the current cart and clear the cart.
- * Orders are not persisted yet.
- */
-export function placeOrder({ name, phone, address }) {
-  const order = {
-    id: "ord_" + Date.now(),
-    user: getAuth()?.username ?? "guest",
-    items: getCartItems(),
-    name,
-    phone,
-    address,
-    createdAt: new Date().toISOString(),
-  };
-  clearCart();
-  return order;
+export function removeCoupon() {
+  removeKey(KEYS.coupon);
+  emit("cart");
 }
 
 /* ---------- Users & session ----------

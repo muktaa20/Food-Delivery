@@ -67,6 +67,8 @@ export const api = {
   getCategories: (options) => request("categories", options),
   getRestaurants: (options) => request("restaurants", options),
   getRestaurant: (id, options) => request(`restaurants/${encodeURIComponent(id)}`, options),
+  getCoupons: (options) => request("coupons", options),
+  getOrders: (options) => request("orders", options),
 };
 
 export const isAbortError = (err) => err?.name === "AbortError";

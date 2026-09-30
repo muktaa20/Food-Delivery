@@ -1,32 +1,20 @@
-/** Checkout page: delivery details form and order summary. */
+/** Checkout page: delivery details form and the priced order summary. */
 import { $ } from "../utils/dom.js";
 import { enableSubmit } from "../utils/forms.js";
 import { escapeHtml, formatPrice } from "../utils/format.js";
-import { getCartItems, computeTotals, placeOrder } from "../store.js";
+import { clearCart, getCart, removeCoupon } from "../store.js";
+import { isCartEmpty } from "../domain/cart.js";
+import { createCartQuote } from "../services/cartQuote.js";
+import { billDetailsHTML } from "../ui/billDetails.js";
+import { renderError } from "../ui/states.js";
 
 const REDIRECT_DELAY_MS = 1400;
 
-function renderSummary(box) {
-  const items = getCartItems();
-  if (items.length === 0) {
-    box.innerHTML = `<div class="text-center">Your cart is empty. <a class="btn" href="menu.html">Browse Menu</a></div>`;
-    return;
-  }
-  const { subtotal, delivery, total } = computeTotals(items);
-  const lines = items
-    .map(
-      (it) =>
-        `<li style="margin-bottom:.6rem">${escapeHtml(it.title)} x ${it.qty} — ${formatPrice(Number(it.price) * Number(it.qty))}</li>`
-    )
+function summaryHTML({ lines, pricing }) {
+  const items = lines
+    .map((l) => `<li class="summary-line"><span>${escapeHtml(l.product.title)} × ${l.qty}</span><span>${formatPrice(l.lineTotal)}</span></li>`)
     .join("");
-
-  box.innerHTML = `
-    <h3>Order</h3>
-    <ul style="list-style:none; padding:0">${lines}</ul>
-    <div>Subtotal: ${formatPrice(subtotal)}</div>
-    <div>Delivery: ${formatPrice(delivery)}</div>
-    <div style="font-weight:700; margin-top:.6rem">Total: ${formatPrice(total)}</div>
-  `;
+  return `<h3>Order</h3><ul class="summary-lines">${items}</ul>${billDetailsHTML(pricing)}`;
 }
 
 export function init() {
@@ -35,12 +23,25 @@ export function init() {
   const msg = $("#checkout-msg");
   if (!form || !summaryBox) return;
 
-  renderSummary(summaryBox);
+  const quote = createCartQuote();
+
+  async function loadSummary() {
+    if (isCartEmpty(getCart())) {
+      summaryBox.innerHTML = `<div class="text-center">Your cart is empty. <a class="btn" href="menu.html">Browse Menu</a></div>`;
+      return;
+    }
+    try {
+      await quote.load();
+      summaryBox.innerHTML = summaryHTML(quote.compute());
+    } catch (err) {
+      renderError(summaryBox, err.message, loadSummary);
+    }
+  }
 
   form.addEventListener("submit", (ev) => {
     ev.preventDefault();
 
-    if (getCartItems().length === 0) {
+    if (isCartEmpty(getCart())) {
       msg.textContent = "Your cart is empty. Add some dishes first.";
       return;
     }
@@ -53,7 +54,8 @@ export function init() {
       return;
     }
 
-    placeOrder({ name, phone, address });
+    clearCart();
+    removeCoupon();
     form.reset();
     msg.textContent = "Order placed! Thank you.";
     setTimeout(() => {
@@ -61,4 +63,5 @@ export function init() {
     }, REDIRECT_DELAY_MS);
   });
   enableSubmit(form);
+  loadSummary();
 }

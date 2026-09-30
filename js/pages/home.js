@@ -1,7 +1,8 @@
 /** Landing page: popular dishes, reviews carousel and the "Get the App" teaser. */
 import { $, $$ } from "../utils/dom.js";
 import { api } from "../services/api.js";
-import { renderProductCards, bindAddToCart } from "../ui/productCard.js";
+import { renderProductCards } from "../ui/productCard.js";
+import { bindCartControls } from "../ui/cartControls.js";
 import { renderLoading, renderError, renderEmpty } from "../ui/states.js";
 import { showToast } from "../ui/toast.js";
 
@@ -44,7 +45,7 @@ function bindComingSoon() {
 export function init() {
   const popular = $("#popular-list");
   if (popular) {
-    bindAddToCart(popular, (id) => productsById.get(id));
+    bindCartControls(popular, (id) => productsById.get(id));
     loadPopular(popular);
   }
   initReviewsCarousel();

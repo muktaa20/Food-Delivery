@@ -8,16 +8,20 @@
  */
 import { RESTAURANTS } from "./data/restaurants.js";
 import { MENU_ITEMS, CATEGORIES } from "./data/menu.js";
+import { COUPONS } from "./data/coupons.js";
 
 const DB_NAME = "foodie-mock-db";
-const DB_VERSION = 1;
+// Bump when stores/indexes change (schema), and add the change to onupgradeneeded.
+const DB_VERSION = 2;
 // Bump when seed data changes to reload the catalog for existing visitors.
-const SEED_VERSION = 1;
+const SEED_VERSION = 2;
 
 export const STORES = Object.freeze({
   restaurants: "restaurants",
   menuItems: "menuItems",
   categories: "categories",
+  coupons: "coupons",
+  orders: "orders",
   meta: "meta",
 });
 
@@ -38,14 +42,21 @@ let dbPromise;
 function openDB() {
   dbPromise ??= new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
+    // Runs for new visitors (oldVersion 0) and for anyone upgrading from an older schema.
+    request.onupgradeneeded = (event) => {
       const db = request.result;
-      db.createObjectStore(STORES.restaurants, { keyPath: "id" });
-      const menu = db.createObjectStore(STORES.menuItems, { keyPath: "id" });
-      menu.createIndex("byRestaurant", "restaurantId");
-      menu.createIndex("byCategory", "category");
-      db.createObjectStore(STORES.categories, { keyPath: "id" });
-      db.createObjectStore(STORES.meta, { keyPath: "key" });
+      if (event.oldVersion < 1) {
+        db.createObjectStore(STORES.restaurants, { keyPath: "id" });
+        const menu = db.createObjectStore(STORES.menuItems, { keyPath: "id" });
+        menu.createIndex("byRestaurant", "restaurantId");
+        menu.createIndex("byCategory", "category");
+        db.createObjectStore(STORES.categories, { keyPath: "id" });
+        db.createObjectStore(STORES.meta, { keyPath: "key" });
+      }
+      if (event.oldVersion < 2) {
+        db.createObjectStore(STORES.coupons, { keyPath: "code" });
+        db.createObjectStore(STORES.orders, { keyPath: "id" });
+      }
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
@@ -56,13 +67,15 @@ function openDB() {
 /** IndexedDB returns records in key order ("p1", "p10", "p2"...), so keep the seed order explicitly. */
 const withPosition = (records) => records.map((record, position) => ({ ...record, position }));
 
+/** Reloads catalog data only; orders are user data and survive re-seeding. */
 async function seed(db) {
-  const catalogStores = [STORES.restaurants, STORES.menuItems, STORES.categories];
+  const catalogStores = [STORES.restaurants, STORES.menuItems, STORES.categories, STORES.coupons];
   const tx = db.transaction([...catalogStores, STORES.meta], "readwrite");
   catalogStores.forEach((name) => tx.objectStore(name).clear());
   withPosition(RESTAURANTS).forEach((r) => tx.objectStore(STORES.restaurants).put(r));
   withPosition(MENU_ITEMS).forEach((m) => tx.objectStore(STORES.menuItems).put(m));
   withPosition(CATEGORIES).forEach((c) => tx.objectStore(STORES.categories).put(c));
+  withPosition(COUPONS).forEach((c) => tx.objectStore(STORES.coupons).put(c));
   tx.objectStore(STORES.meta).put({ key: "seedVersion", value: SEED_VERSION });
   await transactionDone(tx);
 }
@@ -86,4 +99,12 @@ export async function getAll(storeName, { index, query } = {}) {
 export async function getById(storeName, id) {
   const db = await openDB();
   return promisify(db.transaction(storeName).objectStore(storeName).get(id));
+}
+
+export async function put(storeName, record) {
+  const db = await openDB();
+  const tx = db.transaction(storeName, "readwrite");
+  tx.objectStore(storeName).put(record);
+  await transactionDone(tx);
+  return record;
 }

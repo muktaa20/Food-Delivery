@@ -6,6 +6,8 @@
  *   GET /api/menu                     filters: q, category, veg, minRating, maxPrice,
  *                                     sort, popular, restaurantId, ids (comma-separated)
  *   GET /api/categories               categories with item counts
+ *   GET /api/coupons                  available offers
+ *   GET /api/orders                   past orders, newest first
  *
  * Paths start with "*" so they match when the site is served from a
  * sub-path (e.g. GitHub Pages at /FoodDelivery/).
@@ -95,6 +97,19 @@ export const handlers = [
       return HttpResponse.json(
         categories.map((c) => ({ ...stripPosition(c), count: counts.get(c.id) ?? 0 }))
       );
+    })
+  ),
+
+  http.get(
+    "*/api/coupons",
+    withNetwork(async () => HttpResponse.json((await getAll(STORES.coupons)).map(stripPosition)))
+  ),
+
+  http.get(
+    "*/api/orders",
+    withNetwork(async () => {
+      const orders = await getAll(STORES.orders);
+      return HttpResponse.json(orders.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
     })
   ),
 ];

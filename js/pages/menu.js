@@ -18,7 +18,8 @@ import {
   filtersToApiQuery,
   countActiveFilters,
 } from "../domain/menuFilters.js";
-import { renderProductCards, bindAddToCart } from "../ui/productCard.js";
+import { renderProductCards } from "../ui/productCard.js";
+import { bindCartControls } from "../ui/cartControls.js";
 import { renderLoading, renderError, renderEmpty } from "../ui/states.js";
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -204,7 +205,7 @@ export function init() {
     loadMenu();
   });
 
-  bindAddToCart(grid, (id) => productsById.get(id));
+  bindCartControls(grid, (id) => productsById.get(id));
   renderRecentSearches();
   syncControls();
   loadCategories();

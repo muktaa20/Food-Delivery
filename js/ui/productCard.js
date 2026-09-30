@@ -1,11 +1,10 @@
 /**
- * Product card rendering and a delegated "Add to Cart" handler.
+ * Product card rendering. Cart buttons come from ui/cartControls.js.
  */
-import { addToCart } from "../store.js";
 import { escapeHtml, formatPrice } from "../utils/format.js";
 import { highlightMatches } from "../utils/highlight.js";
-import { showToast } from "./toast.js";
 import { doneLoading } from "./states.js";
+import { cartControlHTML } from "./cartControls.js";
 
 function vegBadgeHTML(veg) {
   const label = veg ? "Veg" : "Non-veg";
@@ -20,7 +19,7 @@ function vegBadgeHTML(veg) {
  */
 export function productCardHTML(product, { variant = "menu", query = "" } = {}) {
   const title = escapeHtml(product.title);
-  const addButton = `<button class="btn add-to-cart" data-id="${escapeHtml(product.id)}">Add to Cart</button>`;
+  const addButton = cartControlHTML(product);
 
   const body =
     variant === "home"
@@ -52,17 +51,4 @@ export function productCardHTML(product, { variant = "menu", query = "" } = {}) 
 export function renderProductCards(container, products, options) {
   container.innerHTML = products.map((p) => productCardHTML(p, options)).join("");
   doneLoading(container);
-}
-
-/**
- * One listener per container handles every current and future "Add to Cart"
- * button, so re-rendering the cards never needs re-binding.
- * @param {(id: string) => object | undefined} findProduct - looks up a rendered product by id
- */
-export function bindAddToCart(container, findProduct) {
-  container.addEventListener("click", (e) => {
-    const btn = e.target.closest(".add-to-cart");
-    if (!btn || !container.contains(btn)) return;
-    if (addToCart(findProduct(btn.dataset.id))) showToast("Added to cart");
-  });
 }
