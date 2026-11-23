@@ -158,46 +158,161 @@ export const getSavedAddress = () => readJSON(KEYS.address, null);
 
 export const saveAddress = (address) => writeJSON(KEYS.address, address);
 
-/* ---------- Users & session ----------
- * Demo-only auth: passwords are stored in plain text in localStorage.
- */
 
 function getUsers() {
   return readJSON(KEYS.users, []);
 }
 
-/** @returns {{ name: string, username: string, email: string } | null} */
+const normalize = (value) => String(value ?? "").trim().toLowerCase();
+
+function randomSalt() {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function hashPassword(password, salt) {
+  const data = new TextEncoder().encode(`${salt}:${password}`);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** @returns {{ name: string, username: string, email: string, createdAt?: string } | null} */
 export function getAuth() {
   return readJSON(KEYS.auth, null);
 }
 
 function setAuth(user) {
-  writeJSON(KEYS.auth, user);
+  writeJSON(KEYS.auth, { name: user.name, username: user.username, email: user.email, createdAt: user.createdAt });
   emit("auth");
 }
 
-/** @returns {{ ok: true } | { ok: false, error: string }} */
-export function signup({ name, username, email, password }) {
+/** @returns {Promise<{ ok: true } | { ok: false, error: string, field?: string }>} */
+export async function signup({ name, username, email, password }) {
   const users = getUsers();
-  if (users.some((u) => u.username === username || u.email === email)) {
-    return { ok: false, error: "User with same username or email already exists." };
+  if (users.some((u) => normalize(u.username) === normalize(username))) {
+    return { ok: false, field: "username", error: "That username is already taken." };
   }
-  users.push({ name, username, email, password });
-  writeJSON(KEYS.users, users);
-  setAuth({ name, username, email });
+  if (users.some((u) => normalize(u.email) === normalize(email))) {
+    return { ok: false, field: "email", error: "An account with this email already exists." };
+  }
+  const salt = randomSalt();
+  const user = {
+    name: name.trim(),
+    username: username.trim(),
+    email: email.trim().toLowerCase(),
+    salt,
+    passwordHash: await hashPassword(password, salt),
+    createdAt: new Date().toISOString(),
+  };
+  writeJSON(KEYS.users, [...users, user]);
+  setAuth(user);
   return { ok: true };
 }
 
 /**
  * @param {string} identifier - username or email
- * @returns {{ ok: true } | { ok: false, error: string }}
+ * @returns {Promise<{ ok: true } | { ok: false, error: string }>}
  */
-export function login(identifier, password) {
-  const user = getUsers().find(
-    (u) => (u.username === identifier || u.email === identifier) && u.password === password
+export async function login(identifier, password) {
+  const users = getUsers();
+  const index = users.findIndex(
+    (u) => normalize(u.username) === normalize(identifier) || normalize(u.email) === normalize(identifier)
   );
-  if (!user) return { ok: false, error: "Invalid username/email or password." };
-  setAuth({ name: user.name, username: user.username, email: user.email });
+  const user = users[index];
+  const invalid = { ok: false, error: "Incorrect username/email or password." };
+  if (!user) return invalid;
+
+  if (user.passwordHash) {
+    if ((await hashPassword(password, user.salt)) !== user.passwordHash) return invalid;
+  } else {
+    // Accounts created before hashing stored the password in plain text: verify, then upgrade in place.
+    if (user.password !== password) return invalid;
+    const salt = randomSalt();
+    const { password: _plain, ...rest } = user;
+    users[index] = { ...rest, salt, passwordHash: await hashPassword(password, salt) };
+    writeJSON(KEYS.users, users);
+  }
+  setAuth(user);
+  return { ok: true };
+}
+
+/* ---------- Password reset ----------
+ * Flow: request a one-time code, verify it, then set a new password.
+ * Only a hash of the code is stored. There is no mail server, so the caller
+ * receives the code to display; a real backend would email it instead.
+ */
+const RESET_TTL_MS = 10 * 60 * 1000;
+const RESET_MAX_ATTEMPTS = 5;
+const RESET_EXPIRED = { ok: false, expired: true, error: "This code has expired. Please request a new one." };
+
+function activeReset() {
+  const reset = readJSON(KEYS.passwordReset, null);
+  if (reset && Date.now() < reset.expiresAt) return reset;
+  removeKey(KEYS.passwordReset);
+  return null;
+}
+
+/** @returns {Promise<{ ok: true, code: string, email: string, minutes: number } | { ok: false, error: string }>} */
+export async function requestPasswordReset(identifier) {
+  const id = normalize(identifier);
+  const user = getUsers().find((u) => normalize(u.username) === id || normalize(u.email) === id);
+  if (!user) return { ok: false, error: "We couldn't find an account with that username or email." };
+
+  // Rejection sampling keeps all 6-digit codes equally likely.
+  const limit = Math.floor(2 ** 32 / 1_000_000) * 1_000_000;
+  let value;
+  do {
+    value = crypto.getRandomValues(new Uint32Array(1))[0];
+  } while (value >= limit);
+  const code = String(value % 1_000_000).padStart(6, "0");
+
+  const salt = randomSalt();
+  writeJSON(KEYS.passwordReset, {
+    email: user.email,
+    salt,
+    codeHash: await hashPassword(code, salt),
+    expiresAt: Date.now() + RESET_TTL_MS,
+    attempts: 0,
+    verified: false,
+  });
+  return { ok: true, code, email: user.email, minutes: RESET_TTL_MS / 60_000 };
+}
+
+/** @returns {Promise<{ ok: true } | { ok: false, error: string, expired?: boolean }>} */
+export async function verifyResetCode(code) {
+  const reset = activeReset();
+  if (!reset) return RESET_EXPIRED;
+  if ((await hashPassword(code, reset.salt)) === reset.codeHash) {
+    writeJSON(KEYS.passwordReset, { ...reset, verified: true });
+    return { ok: true };
+  }
+  const attempts = reset.attempts + 1;
+  if (attempts >= RESET_MAX_ATTEMPTS) {
+    removeKey(KEYS.passwordReset);
+    return { ok: false, expired: true, error: "Too many incorrect attempts. Please request a new code." };
+  }
+  writeJSON(KEYS.passwordReset, { ...reset, attempts });
+  const left = RESET_MAX_ATTEMPTS - attempts;
+  return { ok: false, error: `Incorrect code. ${left} ${left === 1 ? "attempt" : "attempts"} left.` };
+}
+
+/** Needs a verified code. The code is single-use. */
+export async function setNewPassword(password) {
+  const reset = activeReset();
+  if (!reset?.verified) return RESET_EXPIRED;
+  const users = getUsers();
+  const index = users.findIndex((u) => normalize(u.email) === normalize(reset.email));
+  if (index < 0) {
+    removeKey(KEYS.passwordReset);
+    return RESET_EXPIRED;
+  }
+  const salt = randomSalt();
+  const { password: _legacyPlainText, ...user } = users[index];
+  users[index] = { ...user, salt, passwordHash: await hashPassword(password, salt) };
+  if (!writeJSON(KEYS.users, users)) return { ok: false, error: "Could not save your new password." };
+  removeKey(KEYS.passwordReset);
+  // Another tab may still be signed in with the old password.
+  if (normalize(getAuth()?.email) === normalize(reset.email)) logout();
   return { ok: true };
 }
 

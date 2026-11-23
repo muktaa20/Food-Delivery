@@ -45,3 +45,37 @@ export const MENU_ITEMS = [
   { id: "p23", restaurantId: "r4", title: "Masala Daliya", price: 99, category: "healthy", veg: true, rating: 4.0, popular: false, img: unsplash("photo-1630409351211-d62ab2d24da4"), desc: "Broken wheat cooked with vegetables and spices" },
   { id: "p24", restaurantId: "r4", title: "Protein Daliya Bowl", price: 129, category: "healthy", veg: true, rating: 4.2, popular: false, img: unsplash("photo-1623428187425-873f16e10554"), desc: "Daliya with sprouts, paneer and seeds" },
 ];
+
+const STYLES = ["Classic", "Spicy", "Smoky", "Tandoori", "Peri Peri", "Garlic", "Masala", "Herb", "Cheesy", "Chef's Special", "Desi", "Royal"];
+const PORTIONS = [
+  { label: "Regular", factor: 1 },
+  { label: "Large", factor: 1.4 },
+  { label: "Combo", factor: 1.7 },
+  { label: "Mini", factor: 0.75 },
+];
+
+function seeded(n) {
+  const x = Math.sin(n * 9301 + 49297) * 233280;
+  return x - Math.floor(x);
+}
+
+const BASE_ITEMS = MENU_ITEMS.slice();
+let counter = 100;
+outer: for (const style of STYLES) {
+  for (const portion of PORTIONS) {
+    for (const base of BASE_ITEMS) {
+      if (BASE_ITEMS.length + counter - 100 >= 1000) break outer;
+      const r = seeded(counter);
+      MENU_ITEMS.push({
+        ...base,
+        id: `g${counter}`,
+        title: `${style} ${base.title} (${portion.label})`,
+        price: Math.max(39, Math.round((base.price * portion.factor + r * 40) / 5) * 5 - 1),
+        rating: Math.round((3.6 + r * 1.3) * 10) / 10,
+        popular: false,
+        desc: `${base.desc}. ${portion.label} portion, ${style.toLowerCase()} style.`,
+      });
+      counter++;
+    }
+  }
+}

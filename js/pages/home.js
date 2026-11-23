@@ -5,6 +5,7 @@ import { renderProductCards } from "../ui/productCard.js";
 import { bindCartControls } from "../ui/cartControls.js";
 import { renderLoading, renderError, renderEmpty } from "../ui/states.js";
 import { showToast } from "../ui/toast.js";
+import { initHeroSlider } from "../ui/heroSlider.js";
 
 const productsById = new Map();
 
@@ -48,6 +49,7 @@ export function init() {
     bindCartControls(popular, (id) => productsById.get(id));
     loadPopular(popular);
   }
+  initHeroSlider();
   initReviewsCarousel();
   bindComingSoon();
 }

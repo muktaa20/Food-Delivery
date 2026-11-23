@@ -1,11 +1,3 @@
-/**
- * IndexedDB "database" behind the mock API.
- *
- * On first run (or when SEED_VERSION changes) the catalog is loaded from the
- * seed files. Handlers then read from IndexedDB, just as a real server reads
- * from its database, so data persists across reloads and later phases can
- * write to it (e.g. orders).
- */
 import { RESTAURANTS } from "./data/restaurants.js";
 import { MENU_ITEMS, CATEGORIES } from "./data/menu.js";
 import { COUPONS } from "./data/coupons.js";
@@ -14,7 +6,7 @@ const DB_NAME = "foodie-mock-db";
 // Bump when stores/indexes change (schema), and add the change to onupgradeneeded.
 const DB_VERSION = 2;
 // Bump when seed data changes to reload the catalog for existing visitors.
-const SEED_VERSION = 3;
+const SEED_VERSION = 4;
 
 export const STORES = Object.freeze({
   restaurants: "restaurants",

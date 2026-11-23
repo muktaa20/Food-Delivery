@@ -20,6 +20,7 @@ import {
 } from "../domain/menuFilters.js";
 import { renderProductCards } from "../ui/productCard.js";
 import { bindCartControls } from "../ui/cartControls.js";
+import { GUEST_MENU_LIMIT, isLoggedIn, loginPromptHTML } from "../services/authGate.js";
 import { renderLoading, renderError, renderEmpty } from "../ui/states.js";
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -116,6 +117,40 @@ export function init() {
     }
   }
 
+  const PAGE_SIZE = 24;
+  let currentItems = [];
+  let shown = PAGE_SIZE;
+  const moreBtn = document.createElement("button");
+  moreBtn.type = "button";
+  moreBtn.className = "btn show-more";
+  grid.after(moreBtn);
+  moreBtn.hidden = true;
+  moreBtn.addEventListener("click", () => {
+    shown += PAGE_SIZE;
+    renderPage();
+  });
+
+  const gate = document.createElement("div");
+  moreBtn.after(gate);
+
+  function renderPage() {
+    const member = isLoggedIn();
+    if (!member) shown = Math.min(shown, GUEST_MENU_LIMIT);
+    renderProductCards(grid, currentItems.slice(0, shown), { variant: "menu", query: filters.q });
+    const left = currentItems.length - shown;
+
+    // Guests get a preview; the rest of the catalog is behind sign-in.
+    const locked = !member && left > 0;
+    gate.innerHTML = locked
+      ? loginPromptHTML({
+          title: `${left} more dishes are waiting`,
+          text: "Sign in or create a free account to see the full menu, order and track deliveries.",
+        })
+      : "";
+    moreBtn.hidden = locked || left <= 0;
+    moreBtn.textContent = `Show more (${left} left)`;
+  }
+
   /** A newer load aborts the in-flight one, so a slow stale response can't overwrite fresh results. */
   async function loadMenu() {
     inFlight?.abort();
@@ -123,6 +158,7 @@ export function init() {
     const { signal } = inFlight;
 
     renderLoading(grid, 8);
+    moreBtn.hidden = true;
     controls.summary.textContent = "Searching…";
     try {
       const items = await api.getMenu(filtersToApiQuery(filters), { signal });
@@ -131,7 +167,9 @@ export function init() {
       renderSummary(items.length);
 
       if (items.length > 0) {
-        renderProductCards(grid, items, { variant: "menu", query: filters.q });
+        currentItems = items;
+        shown = PAGE_SIZE;
+        renderPage();
       } else {
         const hasFilters = countActiveFilters(filters) > 0 || filters.q;
         renderEmpty(

@@ -21,30 +21,30 @@ export function productCardHTML(product, { variant = "menu", query = "" } = {}) 
   const title = escapeHtml(product.title);
   const addButton = cartControlHTML(product);
 
-  const body =
-    variant === "home"
-      ? `<div class="card-actions">
-           <a class="btn" href="menu.html">View</a>
-           ${addButton}
-         </div>`
-      : `<p class="small para">${escapeHtml(product.desc || "")}</p>
-         <div class="card-actions">
-           ${addButton}
-           <a class="btn" href="cart.html">Go to Cart</a>
-         </div>`;
+  const desc = variant === "menu" && product.desc ? `<p class="card-desc">${escapeHtml(product.desc)}</p>` : "";
+  const rating = product.rating
+    ? `<span class="rating"><i class="fa-solid fa-star" aria-hidden="true"></i> ${product.rating.toFixed(1)}</span>`
+    : "";
 
   return `
-    <div class="order-card">
-      <img src="${escapeHtml(product.img)}" alt="${title}" loading="lazy" />
-      <div class="card-meta">
-        ${vegBadgeHTML(product.veg)}
-        ${product.rating ? `<span class="rating"><i class="fa-solid fa-star" aria-hidden="true"></i> ${product.rating.toFixed(1)}</span>` : ""}
+    <article class="order-card">
+      <div class="card-media">
+        <img src="${escapeHtml(product.img)}" alt="${title}" loading="lazy" />
+        ${rating}
       </div>
-      <h4>${highlightMatches(product.title, query)}</h4>
-      ${product.restaurant ? `<p class="card-restaurant">${highlightMatches(product.restaurant.name, query)}</p>` : ""}
-      <div class="price">${formatPrice(product.price)}</div>
-      ${body}
-    </div>
+      <div class="card-body">
+        <div class="card-title-row">
+          ${vegBadgeHTML(product.veg)}
+          <h4>${highlightMatches(product.title, query)}</h4>
+        </div>
+        ${product.restaurant ? `<p class="card-restaurant">${highlightMatches(product.restaurant.name, query)}</p>` : ""}
+        ${desc}
+        <div class="card-actions">
+          <span class="price">${formatPrice(product.price)}</span>
+          ${addButton}
+        </div>
+      </div>
+    </article>
   `;
 }
 

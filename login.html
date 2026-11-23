@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Login - Foodie</title>
+  <title>Sign in · Foodie</title>
   <link
     rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css"
@@ -17,28 +17,40 @@
 <body data-page="login">
   <header id="site-header"></header>
 
-  <main>
-    <section>
-      <div class="wraper p-top text-center">
-        <h2>Login</h2>
-        <form id="login-form" class="auth-form">
+  <main class="auth-page">
+    <div class="auth-shell">
+      <section class="auth-panel">
+        <h1 class="auth-title">Welcome back</h1>
+        <p class="auth-sub">Sign in to order, track deliveries and see past orders.</p>
+        <form id="login-form" class="auth-form" novalidate>
           <div class="form-row">
-            <label for="login-username">Username or Email</label>
-            <input id="login-username" name="username" autocomplete="username" required />
+            <label for="login-username">Username or email</label>
+            <input id="login-username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required aria-describedby="login-username-err" />
+            <p class="field-error" id="login-username-err" data-error-for="username"></p>
           </div>
           <div class="form-row">
             <label for="login-password">Password</label>
-            <input id="login-password" type="password" name="password" autocomplete="current-password" required />
+            <div class="input-group">
+              <input id="login-password" name="password" type="password" autocomplete="current-password" required aria-describedby="login-password-err" />
+              <button type="button" class="input-icon-btn" data-toggle-password="password" aria-label="Show password" aria-pressed="false"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
+            </div>
+            <p class="field-error" id="login-password-err" data-error-for="password"></p>
           </div>
-          <div class="form-row">
-            <!-- Enabled by JS once the submit handler is attached; a native GET submit would put the password in the URL. -->
-            <button class="btn" type="submit" disabled>Login</button>
-          </div>
-          <p class="small">Don't have an account? <a href="signup.html">Sign up</a></p>
-          <div id="login-error" class="error-msg"></div>
+          <div id="login-notice" class="success-msg" role="status" hidden>Password updated. Sign in with your new password.</div>
+          <div id="login-error" class="error-msg" role="alert"></div>
+          <!-- Enabled by JS once the submit handler is attached; a native GET submit would put the password in the URL. -->
+          <button class="btn btn-primary btn-block" type="submit" disabled>Sign in</button>
+          <div class="auth-links"><a href="forgot-password.html" data-auth-switch>Forgot password?</a><a href="signup.html" data-auth-switch>Create account</a></div>
         </form>
-      </div>
-    </section>
+      </section>
+      <aside class="auth-aside" aria-hidden="true">
+        <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1000&h=1300&q=85" alt="" />
+        <div class="auth-aside-copy">
+          <p class="auth-quote">“The food arrived hot and fresh, and the delivery was super quick.”</p>
+          <p class="auth-quote-by">Bharat · Foodie customer</p>
+        </div>
+      </aside>
+    </div>
   </main>
 
   <footer id="site-footer" class="site-footer"></footer>

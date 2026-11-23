@@ -1,12 +1,3 @@
-/**
- * Live order tracking: status stepper, ETA countdown and a Leaflet map with
- * the rider moving along the route.
- *
- * Real-time pattern: poll GET /api/orders/:id every few seconds for the
- * authoritative status and rider progress, then animate the marker smoothly
- * between updates on the client. Polling pauses while the tab is hidden and
- * backs off when the connection fails.
- */
 import { $ } from "../utils/dom.js";
 import { escapeHtml, formatPrice } from "../utils/format.js";
 import { api } from "../services/api.js";
@@ -18,6 +9,7 @@ import { billDetailsHTML } from "../ui/billDetails.js";
 import { confirmDialog } from "../ui/confirmDialog.js";
 import { renderEmpty, renderError } from "../ui/states.js";
 import { showToast } from "../ui/toast.js";
+import { hasGoogleMapsKey, loadGoogleMaps } from "../services/googleMaps.js";
 
 const POLL_MS = 4000;
 const MAX_BACKOFF_MS = 30_000;
@@ -121,8 +113,95 @@ const skeletonHTML = `
   </div>
 `;
 
-/** Leaflet map with restaurant, customer and rider markers. Returns null if Leaflet didn't load. */
+const toLatLng = ([lat, lng]) => ({ lat, lng });
+
+/** Round marker icon drawn as SVG, so Google Maps needs no extra assets. */
+function googlePin(maps, color, glyph) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+    <circle cx="20" cy="20" r="17" fill="#fff" stroke="${color}" stroke-width="3"/>
+    <text x="20" y="26" font-size="17" text-anchor="middle">${glyph}</text></svg>`;
+  return {
+    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+    scaledSize: new maps.Size(40, 40),
+    anchor: new maps.Point(20, 20),
+  };
+}
+
+/** Google Maps version of the tracking map; same interface as the Leaflet one. */
+function createGoogleMap(maps, el, order) {
+  el.innerHTML = "";
+  const map = new maps.Map(el, {
+    mapTypeControl: false,
+    streetViewControl: false,
+    fullscreenControl: true,
+    gestureHandling: "cooperative",
+    clickableIcons: false,
+  });
+  const path = order.route.map(toLatLng);
+
+  new maps.Polyline({
+    map,
+    path,
+    strokeOpacity: 0,
+    icons: [{ icon: { path: "M 0,-1 0,1", strokeOpacity: 0.7, strokeColor: "#616161", scale: 3 }, offset: "0", repeat: "14px" }],
+  });
+  const travelled = new maps.Polyline({ map, path: [], strokeColor: "#ea580c", strokeWeight: 5 });
+
+  new maps.Marker({ map, position: toLatLng(order.restaurant.location), title: order.restaurant.name, icon: googlePin(maps, "#c0392b", "🏪") });
+  new maps.Marker({ map, position: toLatLng(order.customer.location), title: "Delivery location", icon: googlePin(maps, "#15803d", "🏠") });
+  const rider = new maps.Marker({ position: path[0], title: order.rider.name, icon: googlePin(maps, "#ea580c", "🛵"), zIndex: 1000 });
+
+  const bounds = new maps.LatLngBounds();
+  path.forEach((p) => bounds.extend(p));
+  map.fitBounds(bounds, 48);
+
+  return {
+    setRider(fraction, visible) {
+      rider.setMap(visible ? map : null);
+      rider.setPosition(toLatLng(pointAlongRoute(order.route, fraction)));
+      travelled.setPath(visible ? routeUntil(order.route, fraction).map(toLatLng) : []);
+    },
+  };
+}
+
+/**
+ * Returns a map controller right away. With a Google Maps key it shows a Google
+ * map once the API loads (replaying the latest rider position); without a key,
+ * or if Google fails, it uses the Leaflet/OpenStreetMap map.
+ */
 function createMap(el, order) {
+  if (!hasGoogleMapsKey()) return createLeafletMap(el, order);
+
+  let impl = null;
+  let last = null;
+  const useFallback = () => {
+    impl = createLeafletMap(el, order);
+    if (impl && last) impl.setRider(...last);
+  };
+
+  el.innerHTML = `<div class="map-fallback"><i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><p>Loading map…</p></div>`;
+  loadGoogleMaps()
+    .then((maps) => {
+      window.gm_authFailure = useFallback;
+      impl = createGoogleMap(maps, el, order);
+      if (last) impl.setRider(...last);
+    })
+    .catch((err) => {
+      console.warn(err.message, "Falling back to OpenStreetMap.");
+      useFallback();
+    });
+
+  return {
+    setRider(fraction, visible) {
+      last = [fraction, visible];
+      impl?.setRider(fraction, visible);
+    },
+  };
+}
+
+/** Leaflet map with restaurant, customer and rider markers. Returns null if Leaflet didn't load. */
+function createLeafletMap(el, order) {
+  el.innerHTML = "";
   const L = window.L;
   if (!L) {
     el.innerHTML = `<div class="map-fallback"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i><p>Map unavailable right now. Tracking still works.</p></div>`;

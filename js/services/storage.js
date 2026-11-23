@@ -1,9 +1,3 @@
-/**
- * Thin, fail-safe wrapper around localStorage.
- * Every read/write in the app goes through here, so swapping to IndexedDB
- * or a mock API later only touches this layer.
- */
-
 // Key names are part of the persisted format; changing them drops existing user data.
 export const KEYS = Object.freeze({
   legacyCart: "fd_cart_v1", // read once to migrate, then deleted
@@ -13,6 +7,7 @@ export const KEYS = Object.freeze({
   address: "fd_address_v1",
   users: "fd_users_v1",
   auth: "fd_auth_v1",
+  passwordReset: "fd_password_reset_v1",
   recentSearches: "fd_recent_searches_v1",
 });
 

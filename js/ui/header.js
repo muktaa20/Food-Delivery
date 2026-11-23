@@ -1,12 +1,8 @@
-/**
- * Shared site header: nav links, cart badge, auth button and mobile menu.
- * Rendered into <header id="site-header"> on every page so the markup
- * lives in one place instead of being copy-pasted across HTML files.
- */
+
 import { $, $$ } from "../utils/dom.js";
-import { escapeHtml } from "../utils/format.js";
 import { getActiveOrderId, getAuth, getCartCount, logout, subscribe } from "../store.js";
 import { showToast } from "./toast.js";
+import { MEMBER_PAGES } from "../services/authGate.js";
 
 const NAV_LINKS = [
   { href: "index.html", label: "Home" },
@@ -30,7 +26,7 @@ function navItemsHTML(page) {
 function headerHTML(page) {
   return `
     <nav class="navbar flex between wraper">
-      <a href="index.html" class="logo">Foodie.</a>
+      <a href="index.html" class="logo"><img class="logo-img" src="images/logo.svg" alt="Foodie" width="100" height="32" /></a>
 
       <ul class="navlist flex gap-3">${navItemsHTML(page)}</ul>
 
@@ -42,7 +38,9 @@ function headerHTML(page) {
           <i class="fa-solid fa-bag-shopping"></i>
           <span class="cart-value">0</span>
         </a>
-        <a href="login.html" class="auth-btn btn">Sign in &nbsp;${LOGOUT_ICON}</a>
+        <a href="login.html" class="auth-btn btn">Sign in</a>
+        <span class="user-name" hidden></span>
+        <button type="button" class="btn logout-btn" hidden>${LOGOUT_ICON} Logout</button>
         <button type="button" class="hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
           <i class="fa-solid fa-bars"></i>
         </button>
@@ -51,7 +49,9 @@ function headerHTML(page) {
       <ul class="mobile-menu" id="mobile-menu">
         ${navItemsHTML(page)}
         <li class="track-item" hidden><a href="order.html" class="track-link">Track order</a></li>
-        <li><a href="login.html" class="btn auth-btn">Sign in &nbsp;${LOGOUT_ICON}</a></li>
+        <li class="mobile-user" hidden><span class="user-name"></span></li>
+        <li><a href="login.html" class="btn auth-btn">Sign in</a></li>
+        <li class="mobile-logout" hidden><button type="button" class="btn logout-btn">${LOGOUT_ICON} Logout</button></li>
       </ul>
     </nav>
   `;
@@ -72,27 +72,35 @@ function renderTrackLink() {
   $$(".track-item").forEach((item) => (item.hidden = !orderId));
 }
 
+function loginHref() {
+  const page = currentPage();
+  if (["login.html", "signup.html", "forgot-password.html"].includes(page)) return "login.html";
+  return `login.html?next=${encodeURIComponent(page + location.search)}`;
+}
+
 function renderAuthButtons() {
   const auth = getAuth();
+  const loggedIn = Boolean(auth);
   $$(".auth-btn").forEach((el) => {
-    if (auth) {
-      el.innerHTML = `Hi, ${escapeHtml(auth.name || auth.username)} &nbsp;${LOGOUT_ICON}`;
-      el.classList.remove("btn");
-    } else {
-      el.innerHTML = `Sign in &nbsp;${LOGOUT_ICON}`;
-      el.classList.add("btn");
-    }
+    el.href = loginHref();
+    el.hidden = loggedIn;
+  });
+  $$(".user-name").forEach((el) => {
+    el.textContent = loggedIn ? `Hi, ${auth.name || auth.username}` : "";
+  });
+  $$(".desktop-action .user-name, .desktop-action .logout-btn, .mobile-user, .mobile-logout").forEach((el) => {
+    el.hidden = !loggedIn;
   });
 }
 
-/** Logged in: the button logs out. Logged out: the link's href goes to login.html. */
-function bindAuthButtons() {
-  $$(".auth-btn").forEach((btn) => {
-    btn.addEventListener("click", (ev) => {
-      if (!getAuth()) return;
-      ev.preventDefault();
+function bindLogoutButtons() {
+  $$(".logout-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
       logout();
-      showToast("Logged out");
+      const page = document.body.dataset.page;
+      if (MEMBER_PAGES.has(page)) location.href = "index.html";
+      else if (page === "menu") location.reload(); // back to the guest preview
+      else showToast("Logged out");
     });
   });
 }
@@ -113,7 +121,7 @@ function bindMobileMenu() {
     setOpen(!menu.classList.contains("mobile-menu-active"));
   });
   menu.addEventListener("click", (e) => {
-    if (e.target.closest("a")) setOpen(false);
+    if (e.target.closest("a, button")) setOpen(false);
   });
   document.addEventListener("click", (e) => {
     if (!menu.contains(e.target) && !toggle.contains(e.target)) setOpen(false);
@@ -131,7 +139,7 @@ export function initHeader() {
   renderCartCount();
   renderTrackLink();
   renderAuthButtons();
-  bindAuthButtons();
+  bindLogoutButtons();
   bindMobileMenu();
 
   subscribe(({ type }) => {

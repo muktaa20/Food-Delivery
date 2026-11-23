@@ -16,6 +16,7 @@ import { MAX_QTY_PER_ITEM } from "../domain/cart.js";
 import { escapeHtml } from "../utils/format.js";
 import { showToast } from "./toast.js";
 import { confirmDialog } from "./confirmDialog.js";
+import { requireLogin } from "../services/authGate.js";
 
 export function qtyStepperHTML(id, qty, title = "item") {
   const safeId = escapeHtml(id);
@@ -123,6 +124,7 @@ export function bindCartControls(container, findProduct) {
     if (!btn || !container.contains(btn) || !btn.closest(".cart-control")) return;
     const { id } = btn.dataset;
     const title = btn.closest(".cart-control").dataset.title;
+    if (requireLogin()) return; // guests sign in first, then come back to this page
 
     if (btn.classList.contains("add-to-cart")) {
       const product = findProduct(id);

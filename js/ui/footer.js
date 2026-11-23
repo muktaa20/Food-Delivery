@@ -8,8 +8,8 @@ export function initFooter() {
   mount.innerHTML = `
     <div class="wraper footer-grid" id="contact">
       <div>
-        <a href="index.html" class="logo">Foodie.</a>
-        <p class="small">Delicious food, delivered fast.</p>
+        <a href="index.html" class="logo"><img class="logo-img" src="images/logo.svg" alt="Foodie" width="100" height="32" /></a>
+        <p class="small">Great food from local kitchens, delivered fast and tracked live.</p>
       </div>
       <div>
         <h4>Explore</h4>
@@ -17,6 +17,14 @@ export function initFooter() {
           <li><a href="menu.html">Menu</a></li>
           <li><a href="cart.html">Cart</a></li>
           <li><a href="index.html#services">Services</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <ul>
+          <li><a href="index.html#services">How it works</a></li>
+          <li><a href="index.html#reviews">Reviews</a></li>
+          <li><a href="order.html">Track order</a></li>
         </ul>
       </div>
       <div>
