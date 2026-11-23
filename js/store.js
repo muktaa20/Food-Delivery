@@ -16,6 +16,7 @@ import {
   setItemQty,
 } from "./domain/cart.js";
 import { normalizeCode } from "./domain/coupons.js";
+import { sha256Hex } from "./utils/sha256.js";
 
 /* ---------- Subscriptions ---------- */
 
@@ -172,6 +173,7 @@ function randomSalt() {
 
 async function hashPassword(password, salt) {
   const data = new TextEncoder().encode(`${salt}:${password}`);
+  if (!crypto.subtle) return sha256Hex(data); // unavailable on plain-HTTP pages
   const digest = await crypto.subtle.digest("SHA-256", data);
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
 }
@@ -181,9 +183,51 @@ export function getAuth() {
   return readJSON(KEYS.auth, null);
 }
 
+/* The cart, coupon, order and address keys hold the signed-in user's data.
+ * Logout moves them into a per-account store; login moves that account's back. */
+const USER_DATA_KEYS = ["cart", "coupon", "activeOrder", "address"];
+
+function saveUserData(username) {
+  const snapshot = {};
+  USER_DATA_KEYS.forEach((name) => {
+    const value = readJSON(KEYS[name], null);
+    if (value !== null) snapshot[name] = value;
+  });
+  writeJSON(KEYS.userData, { ...readJSON(KEYS.userData, {}), [username]: snapshot });
+}
+
+function loadUserData(username) {
+  const snapshot = readJSON(KEYS.userData, {})[username] ?? {};
+  USER_DATA_KEYS.forEach((name) => {
+    if (name in snapshot) writeJSON(KEYS[name], snapshot[name]);
+    else removeKey(KEYS[name]);
+  });
+  emit("cart");
+  emit("order");
+}
+
 function setAuth(user) {
-  writeJSON(KEYS.auth, { name: user.name, username: user.username, email: user.email, createdAt: user.createdAt });
+  const session = { name: user.name, username: user.username, email: user.email, createdAt: user.createdAt };
+  if (!writeJSON(KEYS.auth, session)) return false;
+  loadUserData(user.username);
   emit("auth");
+  return true;
+}
+
+const STORAGE_ERROR = "Your browser storage is full or blocked, so we couldn't save this.";
+
+/** Exact matches come first, so legacy accounts differing only by case stay separate. */
+function matchingAccounts(identifier) {
+  const exact = identifier.trim();
+  const id = normalize(identifier);
+  const isExact = (u) => u.username === exact || u.email === exact;
+  const matches = getUsers().filter((u) => normalize(u.username) === id || normalize(u.email) === id);
+  return [...matches.filter(isExact), ...matches.filter((u) => !isExact(u))];
+}
+
+async function passwordMatches(user, password) {
+  if (user.passwordHash) return (await hashPassword(password, user.salt)) === user.passwordHash;
+  return user.password === password; // accounts from before hashing
 }
 
 /** @returns {Promise<{ ok: true } | { ok: false, error: string, field?: string }>} */
@@ -204,8 +248,11 @@ export async function signup({ name, username, email, password }) {
     passwordHash: await hashPassword(password, salt),
     createdAt: new Date().toISOString(),
   };
-  writeJSON(KEYS.users, [...users, user]);
-  setAuth(user);
+  if (!writeJSON(KEYS.users, [...users, user])) return { ok: false, field: "email", error: STORAGE_ERROR };
+  if (!setAuth(user)) {
+    writeJSON(KEYS.users, users);
+    return { ok: false, field: "email", error: STORAGE_ERROR };
+  }
   return { ok: true };
 }
 
@@ -214,26 +261,18 @@ export async function signup({ name, username, email, password }) {
  * @returns {Promise<{ ok: true } | { ok: false, error: string }>}
  */
 export async function login(identifier, password) {
-  const users = getUsers();
-  const index = users.findIndex(
-    (u) => normalize(u.username) === normalize(identifier) || normalize(u.email) === normalize(identifier)
-  );
-  const user = users[index];
-  const invalid = { ok: false, error: "Incorrect username/email or password." };
-  if (!user) return invalid;
-
-  if (user.passwordHash) {
-    if ((await hashPassword(password, user.salt)) !== user.passwordHash) return invalid;
-  } else {
-    // Accounts created before hashing stored the password in plain text: verify, then upgrade in place.
-    if (user.password !== password) return invalid;
-    const salt = randomSalt();
-    const { password: _plain, ...rest } = user;
-    users[index] = { ...rest, salt, passwordHash: await hashPassword(password, salt) };
-    writeJSON(KEYS.users, users);
+  for (const user of matchingAccounts(identifier)) {
+    if (!(await passwordMatches(user, password))) continue;
+    if (!user.passwordHash) {
+      // Upgrade a plain-text legacy password in place.
+      const salt = randomSalt();
+      const { password: _plain, ...rest } = user;
+      const upgraded = { ...rest, salt, passwordHash: await hashPassword(password, salt) };
+      writeJSON(KEYS.users, getUsers().map((u) => (u.username === user.username ? upgraded : u)));
+    }
+    return setAuth(user) ? { ok: true } : { ok: false, error: STORAGE_ERROR };
   }
-  setAuth(user);
-  return { ok: true };
+  return { ok: false, error: "Incorrect username/email or password." };
 }
 
 /* ---------- Password reset ----------
@@ -254,8 +293,12 @@ function activeReset() {
 
 /** @returns {Promise<{ ok: true, code: string, email: string, minutes: number } | { ok: false, error: string }>} */
 export async function requestPasswordReset(identifier) {
-  const id = normalize(identifier);
-  const user = getUsers().find((u) => normalize(u.username) === id || normalize(u.email) === id);
+  const matches = matchingAccounts(identifier);
+  const exact = identifier.trim();
+  const user = matches.find((u) => u.username === exact || u.email === exact) ?? (matches.length === 1 ? matches[0] : null);
+  if (!user && matches.length > 1) {
+    return { ok: false, error: "More than one account matches. Enter your username exactly as you created it." };
+  }
   if (!user) return { ok: false, error: "We couldn't find an account with that username or email." };
 
   // Rejection sampling keeps all 6-digit codes equally likely.
@@ -267,14 +310,15 @@ export async function requestPasswordReset(identifier) {
   const code = String(value % 1_000_000).padStart(6, "0");
 
   const salt = randomSalt();
-  writeJSON(KEYS.passwordReset, {
-    email: user.email,
+  const saved = writeJSON(KEYS.passwordReset, {
+    username: user.username,
     salt,
     codeHash: await hashPassword(code, salt),
     expiresAt: Date.now() + RESET_TTL_MS,
     attempts: 0,
     verified: false,
   });
+  if (!saved) return { ok: false, error: STORAGE_ERROR };
   return { ok: true, code, email: user.email, minutes: RESET_TTL_MS / 60_000 };
 }
 
@@ -301,7 +345,7 @@ export async function setNewPassword(password) {
   const reset = activeReset();
   if (!reset?.verified) return RESET_EXPIRED;
   const users = getUsers();
-  const index = users.findIndex((u) => normalize(u.email) === normalize(reset.email));
+  const index = users.findIndex((u) => u.username === reset.username);
   if (index < 0) {
     removeKey(KEYS.passwordReset);
     return RESET_EXPIRED;
@@ -312,11 +356,16 @@ export async function setNewPassword(password) {
   if (!writeJSON(KEYS.users, users)) return { ok: false, error: "Could not save your new password." };
   removeKey(KEYS.passwordReset);
   // Another tab may still be signed in with the old password.
-  if (normalize(getAuth()?.email) === normalize(reset.email)) logout();
+  if (getAuth()?.username === reset.username) logout();
   return { ok: true };
 }
 
 export function logout() {
+  const auth = getAuth();
+  if (auth) saveUserData(auth.username);
+  USER_DATA_KEYS.forEach((name) => removeKey(KEYS[name]));
   removeKey(KEYS.auth);
+  emit("cart");
+  emit("order");
   emit("auth");
 }

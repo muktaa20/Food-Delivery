@@ -14,7 +14,7 @@ const USERNAME_RE = /^[a-zA-Z0-9_.]{3,20}$/;
 /** Only allow relative same-site page targets, so ?next= can't redirect off-site. */
 function nextUrl() {
   const next = new URLSearchParams(location.search).get("next") ?? "";
-  return /^[a-z]+\.html([?#].*)?$/i.test(next) ? next : "index.html";
+  return /^[a-z-]+(\.html)?([?#].*)?$/i.test(next) ? next : "index.html";
 }
 
 function setFieldError(form, name, message) {
@@ -71,6 +71,9 @@ async function withBusy(form, label, task) {
   button.innerHTML = `<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> ${label}`;
   try {
     return await task();
+  } catch (err) {
+    console.error(err);
+    return { ok: false, error: "Something went wrong. Please try again." };
   } finally {
     button.disabled = false;
     button.innerHTML = original;
@@ -203,7 +206,10 @@ function initForgotPassword() {
     }
   });
 
-  $("#resend-code").addEventListener("click", sendCode);
+  $("#resend-code").addEventListener("click", async () => {
+    const result = await withBusy(codeForm, "Sending…", sendCode);
+    if (!result.ok) setFieldError(codeForm, "code", result.error);
+  });
 
   passwordForm.addEventListener("submit", async (ev) => {
     ev.preventDefault();

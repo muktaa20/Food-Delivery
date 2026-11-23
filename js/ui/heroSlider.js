@@ -56,6 +56,7 @@ export function initHeroSlider() {
   music.volume = MUSIC_VOLUME;
   const failed = new Set();
   let soundOn = false;
+  let musicHeld = false; // the pause button also holds the music
   let index = 0;
   let timer = 0;
   let playing = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -63,7 +64,7 @@ export function initHeroSlider() {
   const videoAt = (i) => slides[i].querySelector("video");
 
   function syncMusic() {
-    if (!soundOn || !playing || document.hidden) {
+    if (!soundOn || musicHeld || document.hidden) {
       music.pause();
       return;
     }
@@ -76,11 +77,11 @@ export function initHeroSlider() {
 
   function setSound(value) {
     soundOn = value;
+    musicHeld = false;
     soundButton.setAttribute("aria-pressed", String(value));
     soundButton.setAttribute("aria-label", value ? "Turn sound off" : "Turn sound on");
     soundButton.innerHTML = `<i class="fa-solid ${value ? "fa-volume-high" : "fa-volume-xmark"}" aria-hidden="true"></i>`;
-    if (value && !playing) setPlaying(true);
-    else syncMusic();
+    syncMusic();
   }
 
   function schedule() {
@@ -127,6 +128,7 @@ export function initHeroSlider() {
 
   function setPlaying(value) {
     playing = value;
+    musicHeld = !value;
     toggle.setAttribute("aria-label", value ? "Pause slideshow" : "Play slideshow");
     toggle.innerHTML = `<i class="fa-solid ${value ? "fa-pause" : "fa-play"}" aria-hidden="true"></i>`;
     if (value) playActive();
@@ -167,6 +169,8 @@ export function initHeroSlider() {
       videoAt(index)?.pause();
     } else if (playing) {
       playActive();
+    } else {
+      syncMusic();
     }
   });
 

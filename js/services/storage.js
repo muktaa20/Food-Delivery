@@ -8,6 +8,7 @@ export const KEYS = Object.freeze({
   users: "fd_users_v1",
   auth: "fd_auth_v1",
   passwordReset: "fd_password_reset_v1",
+  userData: "fd_user_data_v1", // each account's saved cart, coupon, order and address
   recentSearches: "fd_recent_searches_v1",
 });
 

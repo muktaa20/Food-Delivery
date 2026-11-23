@@ -159,6 +159,7 @@ export function init() {
 
     renderLoading(grid, 8);
     moreBtn.hidden = true;
+    gate.innerHTML = "";
     controls.summary.textContent = "Searching…";
     try {
       const items = await api.getMenu(filtersToApiQuery(filters), { signal });
