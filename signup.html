@@ -3,46 +3,79 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Signup - Foodie</title>
+  <title>Create account · Foodie</title>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css"
+    integrity="sha512-DxV+EoADOkOygM4IR9yXP8Sb2qwgidEmeqAEmDKIOfPRQZOWbXCzLC6vjbZyy0vPisbH2SyW27+ddLVCN+OMzQ=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
   <link rel="stylesheet" href="style.css" />
-  <script defer src="script.js"></script>
+  <script type="module" src="js/main.js"></script>
 </head>
-<body>
-  <header>
-    <nav class="navbar flex between wraper">
-      <a href="index.html" class="logo">Foodie.</a>
-    </nav>
-  </header>
+<body data-page="signup">
+  <header id="site-header"></header>
 
-  <main>
-    <section>
-      <div class="wraper p-top text-center">
-        <h2>Sign Up</h2>
-        <form id="signup-form" class="auth-form">
+  <main class="auth-page">
+    <div class="auth-shell">
+      <section class="auth-panel">
+        <h1 class="auth-title">Create your account</h1>
+        <p class="auth-sub">It takes less than a minute. Your account is saved in this browser.</p>
+        <form id="signup-form" class="auth-form" novalidate>
           <div class="form-row">
             <label for="su-name">Full name</label>
-            <input id="su-name" name="name" required />
+            <input id="su-name" name="name" autocomplete="name" required aria-describedby="su-name-err" />
+            <p class="field-error" id="su-name-err" data-error-for="name"></p>
           </div>
+          <div class="form-grid">
           <div class="form-row">
             <label for="su-username">Username</label>
-            <input id="su-username" name="username" required />
+            <input id="su-username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required aria-describedby="su-username-err" />
+            <p class="field-error" id="su-username-err" data-error-for="username"></p>
           </div>
           <div class="form-row">
             <label for="su-email">Email</label>
-            <input id="su-email" name="email" type="email" required />
+            <input id="su-email" name="email" type="email" autocomplete="email" required aria-describedby="su-email-err" />
+            <p class="field-error" id="su-email-err" data-error-for="email"></p>
+          </div>
           </div>
           <div class="form-row">
             <label for="su-password">Password</label>
-            <input id="su-password" name="password" type="password" required />
+            <div class="input-group">
+              <input id="su-password" name="password" type="password" autocomplete="new-password" required aria-describedby="su-password-err" />
+              <button type="button" class="input-icon-btn" data-toggle-password="password" aria-label="Show password" aria-pressed="false"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
+            </div>
+            <div class="password-meter" id="password-meter" data-score=""><i></i><i></i><i></i><i></i><span aria-live="polite"></span></div>
+            <p class="field-error" id="su-password-err" data-error-for="password"></p>
           </div>
           <div class="form-row">
-            <button class="btn" type="submit">Create account</button>
+            <label for="su-confirm">Confirm password</label>
+            <div class="input-group">
+              <input id="su-confirm" name="confirm" type="password" autocomplete="new-password" required aria-describedby="su-confirm-err" />
+              <button type="button" class="input-icon-btn" data-toggle-password="confirm" aria-label="Show password" aria-pressed="false"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
+            </div>
+            <p class="field-error" id="su-confirm-err" data-error-for="confirm"></p>
           </div>
-          <p class="small">Already have an account? <a href="login.html">Login</a></p>
-          <div id="signup-error" class="error-msg"></div>
+          <div class="form-row">
+            <label class="checkbox"><input type="checkbox" name="terms" /> I agree to the Terms of Service and Privacy Policy</label>
+            <p class="field-error" data-error-for="terms"></p>
+          </div>
+          <!-- Enabled by JS once the submit handler is attached; a native GET submit would put the password in the URL. -->
+          <button class="btn btn-primary btn-block" type="submit" disabled>Create account</button>
+          <p class="auth-switch">Already have an account? <a href="login.html" data-auth-switch>Sign in</a></p>
         </form>
-      </div>
-    </section>
+      </section>
+      <aside class="auth-aside" aria-hidden="true">
+        <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1000&h=1300&q=85" alt="" />
+        <div class="auth-aside-copy">
+          <p class="auth-quote">“The food arrived hot and fresh, and the delivery was super quick.”</p>
+          <p class="auth-quote-by">Bharat · Foodie customer</p>
+        </div>
+      </aside>
+    </div>
   </main>
+
+  <footer id="site-footer" class="site-footer"></footer>
 </body>
 </html>

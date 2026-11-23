@@ -4,39 +4,57 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Cart - Foodie</title>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css"
+    integrity="sha512-DxV+EoADOkOygM4IR9yXP8Sb2qwgidEmeqAEmDKIOfPRQZOWbXCzLC6vjbZyy0vPisbH2SyW27+ddLVCN+OMzQ=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
   <link rel="stylesheet" href="style.css" />
-  <script defer src="script.js"></script>
+  <script type="module" src="js/main.js"></script>
 </head>
-<body>
-  <header>
-    <nav class="navbar flex between wraper">
-      <a href="index.html" class="logo">Foodie.</a>
-      <div class="desktop-action flex gap-2">
-        <a href="cart.html" class="cart-icon">
-          <i class="fa-solid fa-bag-shopping"></i>
-          <span class="cart-value">0</span>
-        </a>
-        <a href="menu.html" class="btn">Continue shopping</a>
-      </div>
-    </nav>
-  </header>
+<body data-page="cart">
+  <header id="site-header"></header>
 
   <main>
     <section>
       <div class="wraper p-top">
         <div class="text-center">
           <h2>Your Cart</h2>
+          <p id="cart-restaurant" class="muted"></p>
         </div>
 
-        <div id="cart-container" class="mt-4">
-          <!-- cart items will be injected here -->
-        </div>
+        <div class="cart-layout mt-4">
+          <div id="cart-container" aria-live="polite">
+            <!-- line items are rendered by js/pages/cart.js -->
+          </div>
 
-        <div id="cart-summary" class="mt-4 text-center">
-          <!-- summary & checkout button here -->
+          <aside id="cart-summary" class="cart-aside" hidden>
+            <div class="summary-card">
+              <h3>Bill details</h3>
+              <div id="bill-details"></div>
+              <a href="checkout.html" id="checkout-link" class="btn btn-block">Proceed to Checkout</a>
+              <p id="checkout-blocked" class="small warning-msg" hidden></p>
+            </div>
+
+            <div class="summary-card">
+              <h3>Offers &amp; coupons</h3>
+              <div id="coupon-applied"></div>
+              <form id="coupon-form" class="coupon-form" novalidate>
+                <label for="coupon-input" class="visually-hidden">Coupon code</label>
+                <input id="coupon-input" name="code" placeholder="Enter coupon code" autocomplete="off" spellcheck="false" />
+                <button type="submit" class="btn" disabled>Apply</button>
+              </form>
+              <p id="coupon-msg" class="small" role="alert"></p>
+              <ul id="offer-list" class="offer-list"></ul>
+            </div>
+          </aside>
         </div>
       </div>
     </section>
   </main>
+
+  <footer id="site-footer" class="site-footer"></footer>
 </body>
 </html>

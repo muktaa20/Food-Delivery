@@ -1,0 +1,21 @@
+{
+  "name": "foodie-food-delivery",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Frontend-only food delivery app with a mocked REST API (MSW + IndexedDB).",
+  "type": "module",
+  "scripts": {
+    "start": "npx --yes serve -l 5500 .",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "msw": "2.15.0",
+    "vitest": "^5.0.2"
+  },
+  "msw": {
+    "workerDirectory": [
+      "."
+    ]
+  }
+}
